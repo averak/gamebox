@@ -1,0 +1,88 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: setup database
+        run: |
+          docker compose up -d
+
+      - name: test
+        run: |
+          make test
+
+  code-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - uses: actions/cache@v4
+        id: cache-makefile
+        with:
+          path: ~/go/bin
+          key: ${{ runner.os }}-makefile-${{ hashFiles('Makefile') }}-${{ hashFiles('cmd') }}-${{ hashFiles('go.mod') }}
+
+      - name: setup database
+        run: |
+          docker compose up -d
+
+      - name: dependencies
+        if: steps.cache-makefile.outputs.cache-hit != 'true'
+        run: |
+          make install-tools
+
+      - name: set branch info for pull request
+        if: github.event_name == 'pull_request'
+        run: |
+          echo "BREAKING_CHANGE_BASE_BRANCH=remotes/origin/${{ github.event.pull_request.base.ref }}" >> $GITHUB_ENV
+
+      - name: set branch info for push
+        if: github.event_name != 'pull_request'
+        run: |
+          echo "BREAKING_CHANGE_BASE_BRANCH=remotes/origin/${{ github.ref_name }}" >> $GITHUB_ENV
+
+      - name: lint
+        run: |
+          make lint
+
+      - name: codegen nodiff
+        run: |
+          make codegen
+          test -z "$(git status --porcelain)" || (git status; git diff; exit 1)
+
+      - name: format nodiff
+        run: |
+          make format
+          test -z "$(git status --porcelain)" || (git status; git diff; exit 1)
+
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: build
+        run: |
+          make build
