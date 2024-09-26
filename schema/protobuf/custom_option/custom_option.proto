@@ -1,0 +1,20 @@
+syntax = "proto3";
+package custom_option;
+
+import "api/api_errors/api_errors.proto";
+import "google/protobuf/descriptor.proto";
+
+message MethodErrorDefinition {
+  api.api_errors.ErrorCode.Method code = 1;
+  api.api_errors.ErrorSeverity severity = 2;
+  string message = 3;
+}
+
+message MethodOption {
+  repeated MethodErrorDefinition method_error_definitions = 1;
+  bool skip_authenticate = 2;
+}
+
+extend google.protobuf.MethodOptions {
+  MethodOption method_option = 50000;
+}

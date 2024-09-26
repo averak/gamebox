@@ -13,6 +13,6 @@ plugins:
   - remote: buf.build/connectrpc/go:v1.16.2
     out: protobuf
     opt: paths=source_relative
-#  - local: protoc-gen-gamebox-server
-#    out: protobuf
-#    opt: paths=source_relative
+  - local: protoc-gen-gamebox-server
+    out: protobuf
+    opt: paths=source_relative

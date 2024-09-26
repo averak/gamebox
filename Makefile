@@ -4,10 +4,10 @@ GO_LDFLAGS := -s -w -X github.com/averak/gamebox/app/core/build_info.serverVersi
 
 .PHONY: install-tools
 install-tools:
-	# go install ./cmd/protoc-gen-gamebox-server
+	go install ./cmd/protoc-gen-gamebox-server
 	go install github.com/bufbuild/buf/cmd/buf@${BUF_VERSION}
 	go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
-	go install github.com/fdaines/arch-go@latest
+	go install github.com/arch-go/arch-go@latest
 	go install github.com/google/wire/cmd/wire@latest
 	go install github.com/volatiletech/sqlboiler/v4@${SQL_BOILER_VERSION}
 	go install github.com/volatiletech/sqlboiler/v4/drivers/sqlboiler-psql@latest

@@ -1,0 +1,102 @@
+syntax = "proto3";
+package api.api_errors;
+
+import "google/protobuf/descriptor.proto";
+import "google/rpc/code.proto";
+
+message ErrorCode {
+  enum Common {
+    reserved 1 to 999;
+    reserved 2000 to max;
+
+    COMMON_UNSPECIFIED = 0;
+
+    COMMON_UNKNOWN = 1000 [
+      (grpc_code) = UNKNOWN,
+      (error_handling_type) = ERROR_HANDLING_TYPE_TEMPORARY
+    ];
+
+    COMMON_INVALID_SESSION = 1001 [
+      (grpc_code) = UNAUTHENTICATED,
+      (error_handling_type) = ERROR_HANDLING_TYPE_RECOVERABLE
+    ];
+
+    COMMON_INVALID_USER_AVAILABILITY = 1002 [
+      (grpc_code) = PERMISSION_DENIED,
+      (error_handling_type) = ERROR_HANDLING_TYPE_RECOVERABLE
+    ];
+  }
+
+  enum Method {
+    reserved 1 to 1999;
+    reserved 3000 to max;
+
+    METHOD_UNSPECIFIED = 0;
+
+    // 入力値のバリデーションエラー。
+    // エラーを表示した後、アプリを終了させる。
+    METHOD_ILLEGAL_ARGUMENT = 2000 [
+      (grpc_code) = INVALID_ARGUMENT,
+      (error_handling_type) = ERROR_HANDLING_TYPE_FATAL
+    ];
+
+    // 要求の操作を行うための前提条件を満たしていない。
+    // 前提となる状態に遷移し、ユーザに再操作を促す必要がある。
+    METHOD_RESOURCE_NOT_FOUND = 2001 [
+      (grpc_code) = NOT_FOUND,
+      (error_handling_type) = ERROR_HANDLING_TYPE_RECOVERABLE
+    ];
+
+    // 要求の操作を行うための前提条件を満たしていない。
+    // 前提となる状態に遷移し、ユーザに再操作を促す必要がある。
+    METHOD_RESOURCE_CONFLICT = 2002 [
+      (grpc_code) = ALREADY_EXISTS,
+      (error_handling_type) = ERROR_HANDLING_TYPE_RECOVERABLE
+    ];
+
+    // 要求の操作を行うための前提条件を満たしていない。
+    // 前提となる状態に遷移し、ユーザに再操作を促す必要がある。
+    METHOD_RESOURCE_INSUFFICIENT = 2003 [
+      (grpc_code) = RESOURCE_EXHAUSTED,
+      (error_handling_type) = ERROR_HANDLING_TYPE_RECOVERABLE
+    ];
+  }
+}
+
+enum ErrorHandlingType {
+  ERROR_HANDLING_TYPE_UNSPECIFIED = 0;
+
+  // サバクラ間の前提条件が満たされていない場合に発生する致命的なエラー。
+  // 緊急メンテナンスで修正しなければならない。
+  ERROR_HANDLING_TYPE_FATAL = 1;
+
+  // サーバ側の一時的な不具合により発生したエラー。
+  // リトライすることにより解決する可能性がある。
+  ERROR_HANDLING_TYPE_TEMPORARY = 2;
+
+  // クライアント側の不具合により発生したエラー。
+  // 1つ前の画面に遷移したりタイトルに戻して前提条件を変えることにより、解決する可能性がある。
+  ERROR_HANDLING_TYPE_RECOVERABLE = 3;
+}
+
+enum ErrorSeverity {
+  ERROR_SEVERITY_UNSPECIFIED = 0;
+  ERROR_SEVERITY_DEBUG = 1;
+  ERROR_SEVERITY_INFO = 2;
+  ERROR_SEVERITY_NOTICE = 3;
+  ERROR_SEVERITY_WARNING = 4;
+  ERROR_SEVERITY_ERROR = 5;
+  ERROR_SEVERITY_CRITICAL = 6;
+  ERROR_SEVERITY_ALERT = 7;
+  ERROR_SEVERITY_EMERGENCY = 8;
+}
+
+message ErrorDetail {
+  int64 error_code = 1;
+  ErrorHandlingType error_handling_type = 2;
+}
+
+extend google.protobuf.EnumValueOptions {
+  optional google.rpc.Code grpc_code = 50100;
+  optional ErrorHandlingType error_handling_type = 50101;
+}
