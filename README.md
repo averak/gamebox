@@ -1,5 +1,8 @@
 # GameBox
 
+![CI](https://github.com/averak/gamebox/workflows/CI/badge.svg)
+![CD](https://github.com/averak/gamebox/workflows/CD/badge.svg)
+
 This is a game server that provides various casual games.
 It is highly extensible and easy to add new games.
 

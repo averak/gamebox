@@ -1,0 +1,45 @@
+name: CD
+
+on:
+  release:
+    types: [ published ]
+  push:
+    branches:
+      - develop
+
+permissions:
+    contents: read
+    packages: write
+
+jobs:
+  build-docker-image:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service:
+          - api-server
+          - db-migrate
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: get version
+        run: echo "VERSION=$(git describe --tags --always)" >> $GITHUB_ENV
+
+      - uses: docker/build-push-action@v5
+        with:
+          file: ./docker/${{ matrix.service }}/Dockerfile
+          context: .
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}/${{ matrix.service }}:latest
+            ghcr.io/${{ github.repository }}/${{ matrix.service }}:${{ env.VERSION }}
