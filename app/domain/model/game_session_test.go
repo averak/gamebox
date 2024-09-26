@@ -134,6 +134,7 @@ func TestGameSession_FinishPlaying(t *testing.T) {
 
 func TestNewGameSessionService(t *testing.T) {
 	type args struct {
+		userID          uuid.UUID
 		playingSessions []GameSession
 	}
 	tests := []struct {
@@ -210,7 +211,7 @@ func TestNewGameSessionService(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewGameSessionService(context.TODO(), tt.args.playingSessions)
+			got, err := NewGameSessionService(context.TODO(), tt.args.userID, tt.args.playingSessions)
 			if !tt.wantErr(t, err, fmt.Sprintf("NewGameSessionService(%v)", tt.args.playingSessions)) {
 				return
 			}
@@ -223,10 +224,10 @@ func TestGameSessionService_StartPlaying(t *testing.T) {
 	now := time.Now()
 
 	type fields struct {
+		userID          uuid.UUID
 		playingSessions []GameSession
 	}
 	type args struct {
-		userID uuid.UUID
 		gameID GameID
 		wager  int
 		now    time.Time
@@ -241,6 +242,7 @@ func TestGameSessionService_StartPlaying(t *testing.T) {
 		{
 			name: "同じゲームがプレイ中でない場合 => ゲームセッションを開始する",
 			fields: fields{
+				userID: faker.UUIDv5("u1"),
 				playingSessions: []GameSession{
 					{
 						UserID: faker.UUIDv5("u1"),
@@ -250,7 +252,6 @@ func TestGameSessionService_StartPlaying(t *testing.T) {
 				},
 			},
 			args: args{
-				userID: faker.UUIDv5("u1"),
 				gameID: GameIDDummy1,
 				wager:  100,
 				now:    now,
@@ -276,7 +277,6 @@ func TestGameSessionService_StartPlaying(t *testing.T) {
 				},
 			},
 			args: args{
-				userID: faker.UUIDv5("u1"),
 				gameID: GameIDDummy1,
 				wager:  100,
 				now:    now,
@@ -290,9 +290,10 @@ func TestGameSessionService_StartPlaying(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &GameSessionService{
+				userID:          tt.fields.userID,
 				playingSessions: tt.fields.playingSessions,
 			}
-			got, err := s.StartPlaying(tt.args.userID, tt.args.gameID, tt.args.wager, tt.args.now)
+			got, err := s.StartPlaying(tt.args.gameID, tt.args.wager, tt.args.now)
 			if !tt.wantErr(t, err) {
 				return
 			}
