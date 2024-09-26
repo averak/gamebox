@@ -87,10 +87,11 @@ func (s *GameSession) FinishPlaying(result GameResult, wallet Wallet, now time.T
 }
 
 type GameSessionService struct {
+	userID          uuid.UUID
 	playingSessions []GameSession
 }
 
-func NewGameSessionService(ctx context.Context, playingSessions []GameSession) (GameSessionService, error) {
+func NewGameSessionService(ctx context.Context, userID uuid.UUID, playingSessions []GameSession) (GameSessionService, error) {
 	var gameIDs = make(map[GameID]struct{})
 	for _, session := range playingSessions {
 		if session.Status != GameStatusPlaying {
@@ -109,16 +110,16 @@ func NewGameSessionService(ctx context.Context, playingSessions []GameSession) (
 		}
 		gameIDs[session.GameID] = struct{}{}
 	}
-	return GameSessionService{playingSessions}, nil
+	return GameSessionService{userID, playingSessions}, nil
 }
 
-func (s *GameSessionService) StartPlaying(userID uuid.UUID, gameID GameID, wager int, now time.Time) (GameSession, error) {
+func (s *GameSessionService) StartPlaying(gameID GameID, wager int, now time.Time) (GameSession, error) {
 	for _, session := range s.playingSessions {
 		if session.GameID == gameID {
 			return GameSession{}, ErrGameAlreadyPlaying
 		}
 	}
-	sess := NewGameSession(userID, gameID, wager, 0, GameStatusPlaying, GameResultUnknown, now, time.Time{})
+	sess := NewGameSession(s.userID, gameID, wager, 0, GameStatusPlaying, GameResultUnknown, now, time.Time{})
 	s.playingSessions = append(s.playingSessions, sess)
 	return sess, nil
 }
