@@ -1,0 +1,44 @@
+{
+  "debug": true,
+  "google_cloud": {
+    "project_id": "averak-gamebox-dev-gcp"
+  },
+  "logging": {
+    "severity": "SEVERITY_DEBUG",
+    "omit_request_body": false,
+    "omit_response_body": false
+  },
+  "postgres": {
+    "host": "localhost",
+    "port": 5432,
+    "user": "db",
+    "password": "db",
+    "database": "db"
+  },
+  "api_server": {
+    "port": 8000,
+    "cors": {
+      "allowed_origins": [
+        "*"
+      ],
+      "allowed_methods": [
+        "POST"
+      ],
+      "allowed_headers": [
+        "*"
+      ],
+      "expose_headers": [
+        "*"
+      ],
+      "max_age": 3600,
+      "allow_credentials": true
+    },
+    "session": {
+      "expiration_seconds": 3600,
+      "secret_key": "********************************"
+    },
+    "trace": {
+      "enabled": false
+    }
+  }
+}

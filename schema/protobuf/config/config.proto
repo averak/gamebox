@@ -1,0 +1,70 @@
+syntax = "proto3";
+package com.github.averak.gamebox.config;
+
+message Config {
+  bool debug = 1;
+  GoogleCloud google_cloud = 2;
+  Logging logging = 3;
+  Postgres postgres = 4;
+  APIServer api_server = 5;
+}
+
+message GoogleCloud {
+  string project_id = 1;
+  Trace trace = 2;
+
+  message Trace {
+    bool enabled = 1;
+    float sampling_rate = 2;
+  }
+}
+
+message Logging {
+  Severity severity = 1;
+  bool omit_request_body = 2;
+  bool omit_response_body = 3;
+
+  // Cloud Logging に定義された LogSeverity に対応する。
+  // https://cloud.google.com/logging/docs/reference/v2/rest/v2/LogEntry#logseverity
+  enum Severity {
+    SEVERITY_UNSPECIFIED = 0;
+    SEVERITY_DEBUG = 100;
+    SEVERITY_INFO = 200;
+    SEVERITY_NOTICE = 300;
+    SEVERITY_WARNING = 400;
+    SEVERITY_ERROR = 500;
+    SEVERITY_CRITICAL = 600;
+    SEVERITY_ALERT = 700;
+    SEVERITY_EMERGENCY = 800;
+  }
+}
+
+message Postgres {
+  string host = 1;
+  int32 port = 2;
+  string user = 3;
+  string password = 4;
+  string database = 5;
+}
+
+message APIServer {
+  int32 port = 1;
+  Cors cors = 2;
+  Session session = 3;
+  GoogleCloud.Trace trace = 4;
+
+  message Cors {
+    repeated string allowed_origins = 1;
+    repeated string allowed_methods = 2;
+    repeated string allowed_headers = 3;
+    repeated string expose_headers = 4;
+    int64 max_age = 5;
+    bool allow_credentials = 6;
+  }
+
+  message Session {
+    int64 expiration_seconds = 1;
+    // HMAC-SHA256 の秘密鍵 (32文字の文字列で指定する)
+    string secret_key = 2;
+  }
+}
