@@ -228,6 +228,7 @@ func TestGameSessionService_StartPlaying(t *testing.T) {
 		playingSessions []GameSession
 	}
 	type args struct {
+		id     uuid.UUID
 		gameID GameID
 		wager  int
 		now    time.Time
@@ -252,11 +253,13 @@ func TestGameSessionService_StartPlaying(t *testing.T) {
 				},
 			},
 			args: args{
+				id:     faker.UUIDv5("gs1"),
 				gameID: GameIDDummy1,
 				wager:  100,
 				now:    now,
 			},
 			want: GameSession{
+				ID:        faker.UUIDv5("gs1"),
 				UserID:    faker.UUIDv5("u1"),
 				GameID:    GameIDDummy1,
 				Status:    GameStatusPlaying,
@@ -277,6 +280,7 @@ func TestGameSessionService_StartPlaying(t *testing.T) {
 				},
 			},
 			args: args{
+				id:     faker.UUIDv5("gs1"),
 				gameID: GameIDDummy1,
 				wager:  100,
 				now:    now,
@@ -293,7 +297,7 @@ func TestGameSessionService_StartPlaying(t *testing.T) {
 				userID:          tt.fields.userID,
 				playingSessions: tt.fields.playingSessions,
 			}
-			got, err := s.StartPlaying(tt.args.gameID, tt.args.wager, tt.args.now)
+			got, err := s.StartPlaying(tt.args.id, tt.args.gameID, tt.args.wager, tt.args.now)
 			if !tt.wantErr(t, err) {
 				return
 			}
