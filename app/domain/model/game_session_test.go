@@ -88,6 +88,31 @@ func TestGameSession_FinishPlaying(t *testing.T) {
 			wantErr: assert.NoError,
 		},
 		{
+			name: "引き分けの場合、掛け金がそのまま返却される",
+			fields: fields{
+				Status: GameStatusPlaying,
+				Wager:  1,
+			},
+			args: args{
+				result: GameResultDraw,
+				wallet: Wallet{
+					Balance: 0,
+				},
+				now: now,
+			},
+			want: GameSession{
+				Status:     GameStatusFinished,
+				Result:     GameResultDraw,
+				Wager:      1,
+				Payout:     1,
+				FinishedAt: now,
+			},
+			want1: Wallet{
+				Balance: 1,
+			},
+			wantErr: assert.NoError,
+		},
+		{
 			name: "ゲームが終了済みの場合 => エラー",
 			fields: fields{
 				Status: GameStatusFinished,

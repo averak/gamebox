@@ -35,6 +35,7 @@ const (
 	GameResultUnknown GameResult = iota
 	GameResultWin
 	GameResultLose
+	GameResultDraw
 )
 
 type GameSession struct {
@@ -74,14 +75,15 @@ func (s *GameSession) FinishPlaying(result GameResult, wallet Wallet, now time.T
 
 	switch result {
 	case GameResultWin:
-		// 後続処理で報酬を獲得させるため、ここでは何もしない。
+		s.Payout = s.Wager * 2
 	case GameResultLose:
 		return *s, wallet, nil
+	case GameResultDraw:
+		s.Payout = s.Wager
 	case GameResultUnknown:
 		return GameSession{}, Wallet{}, errors.New("invalid game result")
 	}
 
-	s.Payout = s.Wager * 2
 	if err := wallet.deposit(s.Payout); err != nil {
 		return GameSession{}, Wallet{}, err
 	}

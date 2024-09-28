@@ -1,0 +1,70 @@
+syntax = "proto3";
+package api;
+
+import "custom_option/custom_option.proto";
+import "resource/game.proto";
+
+service GameService {
+  // ゲームセッションを取得します。
+  rpc GetSessionV1(GameServiceGetSessionV1Request) returns (GameServiceGetSessionV1Response) {
+    option (custom_option.method_option) = {
+      method_error_definitions: [
+        {
+          code: METHOD_RESOURCE_NOT_FOUND
+          severity: ERROR_SEVERITY_WARNING
+          message: "The session does not exist."
+        }
+      ]
+    };
+  }
+
+  // プレイ中のゲームセッションリストを取得します。
+  rpc ListPlayingSessionsV1(GameServiceListPlayingSessionsV1Request) returns (GameServiceListPlayingSessionsV1Response) {}
+
+  // ゲームを開始します。
+  // なお、チート対策のためゲーム終了判定はサーバー側で行います。
+  rpc StartPlayingV1(GameServiceStartPlayingV1Request) returns (GameServiceStartPlayingV1Response) {
+    option (custom_option.method_option) = {
+      method_error_definitions: [
+        {
+          code: METHOD_ILLEGAL_ARGUMENT
+          severity: ERROR_SEVERITY_WARNING
+          message: "The wager must be greater than 0."
+        },
+        {
+          code: METHOD_RESOURCE_NOT_FOUND
+          severity: ERROR_SEVERITY_WARNING
+          message: "The game does not exist."
+        },
+        {
+          code: METHOD_RESOURCE_CONFLICT
+          severity: ERROR_SEVERITY_WARNING
+          message: "The game is already being played."
+        }
+      ]
+    };
+  }
+}
+
+message GameServiceGetSessionV1Request {
+  string session_id = 1;
+}
+
+message GameServiceGetSessionV1Response {
+  resource.GameSession session = 1;
+}
+
+message GameServiceListPlayingSessionsV1Request {}
+
+message GameServiceListPlayingSessionsV1Response {
+  repeated resource.GameSession sessions = 1;
+}
+
+message GameServiceStartPlayingV1Request {
+  string game_id = 1;
+  int64 wager = 2;
+}
+
+message GameServiceStartPlayingV1Response {
+  resource.GameSession session = 1;
+}
