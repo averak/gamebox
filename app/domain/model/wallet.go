@@ -8,29 +8,41 @@ import (
 )
 
 var (
-	ErrInsufficientBalance = errors.New("insufficient balance")
+	ErrInsufficientCoins = errors.New("insufficient coins")
 )
 
 type Wallet struct {
 	UserID  uuid.UUID
-	Balance int
+	Balance Coins
 }
 
-func (w *Wallet) deposit(amount int) error {
-	if amount < 0 {
-		return errors.New("amount must be positive")
+func (w *Wallet) Deposit(coins Coins) error {
+	balance, err := NewCoins(int(w.Balance + coins))
+	if err != nil {
+		return err
 	}
-	w.Balance += amount
+	w.Balance = balance
 	return nil
 }
 
-func (w *Wallet) withdraw(amount int) error {
-	if amount < 0 {
-		return errors.New("amount must be positive")
+func (w *Wallet) Withdraw(coins Coins) error {
+	if w.Balance < coins {
+		return fmt.Errorf("%w: %d < %d", ErrInsufficientCoins, w.Balance, coins)
 	}
-	if w.Balance < amount {
-		return fmt.Errorf("%w: %d < %d", ErrInsufficientBalance, w.Balance, amount)
-	}
-	w.Balance -= amount
+	w.Balance -= coins
 	return nil
+}
+
+// Coins は、ゲーム内通貨を表します。
+type Coins int
+
+func NewCoins(v int) (Coins, error) {
+	if v < 0 {
+		return 0, fmt.Errorf("coins must be positive: %d", v)
+	}
+	return Coins(v), nil
+}
+
+func (c Coins) IsZero() bool {
+	return c == 0
 }

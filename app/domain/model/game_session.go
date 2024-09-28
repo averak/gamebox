@@ -13,6 +13,7 @@ import (
 var (
 	ErrGameAlreadyPlaying  = errors.New("game is already playing")
 	ErrGameAlreadyFinished = errors.New("game is already finished")
+	ErrGameNotPlaying      = errors.New("game is not playing")
 )
 
 type GameID int
@@ -20,6 +21,7 @@ type GameID int
 const (
 	GameIDSolitaire GameID = iota + 1
 	GameIDBlackjack
+	GameIDJanken
 )
 
 type GameStatus int
@@ -44,13 +46,16 @@ type GameSession struct {
 	GameID     GameID
 	Status     GameStatus
 	Result     GameResult
-	Wager      int
-	Payout     int
+	Wager      Coins
+	Payout     Coins
 	StartedAt  time.Time
 	FinishedAt time.Time
 }
 
-func NewGameSession(id uuid.UUID, userID uuid.UUID, gameID GameID, wager int, payout int, status GameStatus, result GameResult, startedAt time.Time, finishedAt time.Time) GameSession {
+func NewGameSession(id uuid.UUID, userID uuid.UUID, gameID GameID, wager Coins, payout Coins, status GameStatus, result GameResult, startedAt time.Time, finishedAt time.Time) (GameSession, error) {
+	if wager <= 0 {
+		return GameSession{}, errors.New("wager must be positive")
+	}
 	return GameSession{
 		ID:         id,
 		UserID:     userID,
@@ -61,45 +66,46 @@ func NewGameSession(id uuid.UUID, userID uuid.UUID, gameID GameID, wager int, pa
 		Payout:     payout,
 		StartedAt:  startedAt,
 		FinishedAt: finishedAt,
-	}
+	}, nil
 }
 
-func (s *GameSession) FinishPlaying(result GameResult, wallet Wallet, now time.Time) (GameSession, Wallet, error) {
-	if s.Status == GameStatusFinished {
-		return GameSession{}, Wallet{}, ErrGameAlreadyFinished
+func (g *GameSession) FinishPlaying(result GameResult, now time.Time) (Coins, error) {
+	if g.Status == GameStatusFinished {
+		return 0, ErrGameAlreadyFinished
 	}
-
-	s.Status = GameStatusFinished
-	s.Result = result
-	s.FinishedAt = now
 
 	switch result {
 	case GameResultWin:
-		s.Payout = s.Wager * 2
+		// 現時点では、賭け金の2倍を払い戻す。
+		g.Payout = g.Wager * 2
 	case GameResultLose:
-		return *s, wallet, nil
+		// do nothing
 	case GameResultDraw:
-		s.Payout = s.Wager
+		g.Payout = g.Wager
 	case GameResultUnknown:
-		return GameSession{}, Wallet{}, errors.New("invalid game result")
+		return 0, errors.New("invalid game result")
 	}
 
-	if err := wallet.deposit(s.Payout); err != nil {
-		return GameSession{}, Wallet{}, err
-	}
-	return *s, wallet, nil
+	g.Status = GameStatusFinished
+	g.Result = result
+	g.FinishedAt = now
+	return g.Payout, nil
 }
 
-type GameSessionService struct {
+func (g GameSession) IsPlaying() bool {
+	return g.Status == GameStatusPlaying
+}
+
+type GameSessionStartService struct {
 	userID          uuid.UUID
 	playingSessions []GameSession
 }
 
-func NewGameSessionService(ctx context.Context, userID uuid.UUID, playingSessions []GameSession) (GameSessionService, error) {
+func NewGameSessionService(ctx context.Context, userID uuid.UUID, playingSessions []GameSession) (GameSessionStartService, error) {
 	var gameIDs = make(map[GameID]struct{})
 	for _, session := range playingSessions {
-		if session.Status != GameStatusPlaying {
-			return GameSessionService{}, fmt.Errorf("invalid game session status: %v", session.Status)
+		if !session.IsPlaying() {
+			return GameSessionStartService{}, fmt.Errorf("invalid game session status: %v", session.Status)
 		}
 
 		if _, ok := gameIDs[session.GameID]; ok {
@@ -110,20 +116,23 @@ func NewGameSessionService(ctx context.Context, userID uuid.UUID, playingSession
 				"userID": session.UserID,
 				"gameID": session.GameID,
 			})
-			return GameSessionService{}, errors.New("multiple game sessions are playing for the same game")
+			return GameSessionStartService{}, errors.New("multiple game sessions are playing for the same game")
 		}
 		gameIDs[session.GameID] = struct{}{}
 	}
-	return GameSessionService{userID, playingSessions}, nil
+	return GameSessionStartService{userID, playingSessions}, nil
 }
 
-func (s *GameSessionService) StartPlaying(id uuid.UUID, gameID GameID, wager int, now time.Time) (GameSession, error) {
+func (s *GameSessionStartService) StartPlaying(id uuid.UUID, gameID GameID, wager Coins, now time.Time) (GameSession, error) {
 	for _, session := range s.playingSessions {
 		if session.GameID == gameID {
 			return GameSession{}, ErrGameAlreadyPlaying
 		}
 	}
-	sess := NewGameSession(id, s.userID, gameID, wager, 0, GameStatusPlaying, GameResultUnknown, now, time.Time{})
+	sess, err := NewGameSession(id, s.userID, gameID, wager, 0, GameStatusPlaying, GameResultUnknown, now, time.Time{})
+	if err != nil {
+		return GameSession{}, err
+	}
 	s.playingSessions = append(s.playingSessions, sess)
 	return sess, nil
 }

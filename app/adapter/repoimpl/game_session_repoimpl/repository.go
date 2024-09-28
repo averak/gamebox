@@ -33,17 +33,25 @@ func (r Repository) Get(ctx context.Context, tx transaction.Transaction, id uuid
 		}
 		return model.GameSession{}, err
 	}
+	wager, err := model.NewCoins(dto.Wager)
+	if err != nil {
+		return model.GameSession{}, err
+	}
+	payout, err := model.NewCoins(dto.Payout)
+	if err != nil {
+		return model.GameSession{}, err
+	}
 	return model.NewGameSession(
 		uuid.MustParse(dto.ID),
 		uuid.MustParse(dto.UserID),
 		model.GameID(dto.GameID),
-		dto.Wager,
-		dto.Payout,
+		wager,
+		payout,
 		model.GameStatus(dto.Status),
 		model.GameResult(dto.Result),
 		dto.StartedAt,
 		dto.FinishedAt.Time,
-	), nil
+	)
 }
 
 func (r Repository) Save(ctx context.Context, tx transaction.Transaction, sessions ...model.GameSession) error {
@@ -57,8 +65,8 @@ func (r Repository) Save(ctx context.Context, tx transaction.Transaction, sessio
 			GameID:     int(session.GameID),
 			Status:     int(session.Status),
 			Result:     int(session.Result),
-			Wager:      session.Wager,
-			Payout:     session.Payout,
+			Wager:      int(session.Wager),
+			Payout:     int(session.Payout),
 			StartedAt:  session.StartedAt,
 			FinishedAt: null.NewTime(session.FinishedAt, !session.FinishedAt.IsZero()),
 		}
