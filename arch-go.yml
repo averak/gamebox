@@ -1,0 +1,56 @@
+version: 1
+
+threshold:
+  compliance: 100
+  coverage: 0
+
+dependenciesRules:
+  - package: "github.com/averak/gamebox/app/adapter.**"
+    shouldOnlyDependsOn:
+      internal:
+        - "github.com/averak/gamebox/app/adapter"
+        - "github.com/averak/gamebox/app/core"
+        - "github.com/averak/gamebox/app/domain"
+        - "github.com/averak/gamebox/app/infrastructure"
+        - "github.com/averak/gamebox/app/usecase"
+        - "github.com/averak/gamebox/pkg"
+        - "github.com/averak/gamebox/protobuf"
+        - "github.com/averak/gamebox/testutils"
+
+  - package: "github.com/averak/gamebox/app/core.**"
+    shouldOnlyDependsOn:
+      internal:
+        - "github.com/averak/gamebox/app/core"
+        - "github.com/averak/gamebox/pkg"
+        - "github.com/averak/gamebox/protobuf/config"
+      external:
+        - "github.com/google/uuid"
+        - "cloud.google.com/go/civil"
+        - "google.golang.org/protobuf"
+
+  - package: "github.com/averak/gamebox/app/domain.**"
+    shouldOnlyDependsOn:
+      internal:
+        - "github.com/averak/gamebox/app/core"
+        - "github.com/averak/gamebox/app/domain"
+        - "github.com/averak/gamebox/pkg"
+      external:
+        - "github.com/google/uuid"
+
+  - package: "github.com/averak/gamebox/app/infrastructure.**"
+    shouldOnlyDependsOn:
+      internal:
+        - "github.com/averak/gamebox/app/adapter/dao"
+        - "github.com/averak/gamebox/app/core"
+        - "github.com/averak/gamebox/app/domain"
+        - "github.com/averak/gamebox/app/infrastructure"
+        - "github.com/averak/gamebox/pkg"
+        - "github.com/averak/gamebox/protobuf"
+
+  - package: "github.com/averak/gamebox/app/usecase.**"
+    shouldOnlyDependsOn:
+      internal:
+        - "github.com/averak/gamebox/app/core"
+        - "github.com/averak/gamebox/app/domain"
+        - "github.com/averak/gamebox/app/usecase"
+        - "github.com/averak/gamebox/pkg"

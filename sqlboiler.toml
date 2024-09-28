@@ -1,0 +1,12 @@
+pkgname = "dao"
+output = "app/adapter/dao"
+no-tests = true
+
+[psql]
+dbname = "db"
+host = "localhost"
+port = 5432
+user = "db"
+pass = "db"
+sslmode = "disable"
+schema = "public"

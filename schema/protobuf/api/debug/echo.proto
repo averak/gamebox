@@ -1,0 +1,20 @@
+syntax = "proto3";
+package api.debug;
+
+import "custom_option/custom_option.proto";
+import "google/protobuf/timestamp.proto";
+
+service EchoService {
+  rpc EchoV1(EchoServiceEchoV1Request) returns (EchoServiceEchoV1Response) {
+    option (custom_option.method_option) = {skip_authenticate: true};
+  }
+}
+
+message EchoServiceEchoV1Request {
+  string message = 1;
+}
+
+message EchoServiceEchoV1Response {
+  string message = 1;
+  google.protobuf.Timestamp timestamp = 2;
+}

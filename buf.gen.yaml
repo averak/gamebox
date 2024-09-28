@@ -1,0 +1,18 @@
+version: v2
+managed:
+  enabled: true
+  disable:
+    - module: buf.build/googleapis/googleapis
+  override:
+    - file_option: go_package_prefix
+      value: github.com/averak/gamebox/protobuf
+plugins:
+  - remote: buf.build/protocolbuffers/go:v1.34.2
+    out: protobuf
+    opt: paths=source_relative
+  - remote: buf.build/connectrpc/go:v1.16.2
+    out: protobuf
+    opt: paths=source_relative
+  - local: protoc-gen-gamebox-server
+    out: protobuf
+    opt: paths=source_relative
