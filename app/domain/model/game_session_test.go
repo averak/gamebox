@@ -16,26 +16,73 @@ const (
 	GameIDDummy2 GameID = 2
 )
 
+func TestNewGameSession(t *testing.T) {
+	type args struct {
+		id         uuid.UUID
+		userID     uuid.UUID
+		gameID     GameID
+		wager      Coins
+		payout     Coins
+		status     GameStatus
+		result     GameResult
+		startedAt  time.Time
+		finishedAt time.Time
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    GameSession
+		wantErr assert.ErrorAssertionFunc
+	}{
+		{
+			name: "wager > 0 の場合 => ゲームセッションを作成できる",
+			args: args{
+				wager: 1,
+			},
+			want: GameSession{
+				Wager: 1,
+			},
+			wantErr: assert.NoError,
+		},
+		{
+			name: "wager <= 0 の場合 => エラー",
+			args: args{
+				wager: 0,
+			},
+			want:    GameSession{},
+			wantErr: assert.Error,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := NewGameSession(tt.args.id, tt.args.userID, tt.args.gameID, tt.args.wager, tt.args.payout, tt.args.status, tt.args.result, tt.args.startedAt, tt.args.finishedAt)
+			if !tt.wantErr(t, err) {
+				return
+			}
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
 func TestGameSession_FinishPlaying(t *testing.T) {
 	now := time.Now()
 
 	type fields struct {
 		Status GameStatus
 		Result GameResult
-		Wager  int
+		Wager  Coins
 	}
 	type args struct {
 		result GameResult
-		wallet Wallet
 		now    time.Time
 	}
 	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		want    GameSession
-		want1   Wallet
-		wantErr assert.ErrorAssertionFunc
+		name            string
+		fields          fields
+		args            args
+		want            Coins
+		wantGameSession *GameSession
+		wantErr         assert.ErrorAssertionFunc
 	}{
 		{
 			name: "勝利した場合、掛け金が2倍になる",
@@ -45,20 +92,15 @@ func TestGameSession_FinishPlaying(t *testing.T) {
 			},
 			args: args{
 				result: GameResultWin,
-				wallet: Wallet{
-					Balance: 0,
-				},
-				now: now,
+				now:    now,
 			},
-			want: GameSession{
+			want: 2,
+			wantGameSession: &GameSession{
 				Status:     GameStatusFinished,
 				Result:     GameResultWin,
 				Wager:      1,
 				Payout:     2,
 				FinishedAt: now,
-			},
-			want1: Wallet{
-				Balance: 2,
 			},
 			wantErr: assert.NoError,
 		},
@@ -70,20 +112,15 @@ func TestGameSession_FinishPlaying(t *testing.T) {
 			},
 			args: args{
 				result: GameResultLose,
-				wallet: Wallet{
-					Balance: 0,
-				},
-				now: now,
+				now:    now,
 			},
-			want: GameSession{
+			want: 0,
+			wantGameSession: &GameSession{
 				Status:     GameStatusFinished,
 				Result:     GameResultLose,
 				Wager:      1,
 				Payout:     0,
 				FinishedAt: now,
-			},
-			want1: Wallet{
-				Balance: 0,
 			},
 			wantErr: assert.NoError,
 		},
@@ -95,20 +132,15 @@ func TestGameSession_FinishPlaying(t *testing.T) {
 			},
 			args: args{
 				result: GameResultDraw,
-				wallet: Wallet{
-					Balance: 0,
-				},
-				now: now,
+				now:    now,
 			},
-			want: GameSession{
+			want: 1,
+			wantGameSession: &GameSession{
 				Status:     GameStatusFinished,
 				Result:     GameResultDraw,
 				Wager:      1,
 				Payout:     1,
 				FinishedAt: now,
-			},
-			want1: Wallet{
-				Balance: 1,
 			},
 			wantErr: assert.NoError,
 		},
@@ -116,9 +148,15 @@ func TestGameSession_FinishPlaying(t *testing.T) {
 			name: "ゲームが終了済みの場合 => エラー",
 			fields: fields{
 				Status: GameStatusFinished,
+				Wager:  1,
 			},
 			args: args{
 				result: GameResultWin,
+				now:    now,
+			},
+			wantGameSession: &GameSession{
+				Status: GameStatusFinished,
+				Wager:  1,
 			},
 			wantErr: func(t assert.TestingT, err error, i ...interface{}) bool {
 				return assert.ErrorIs(t, err, ErrGameAlreadyFinished)
@@ -132,27 +170,62 @@ func TestGameSession_FinishPlaying(t *testing.T) {
 			},
 			args: args{
 				result: GameResultUnknown,
-				wallet: Wallet{
-					Balance: 0,
-				},
-				now: now,
+				now:    now,
+			},
+			wantGameSession: &GameSession{
+				Status: GameStatusPlaying,
+				Wager:  1,
 			},
 			wantErr: assert.Error,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := &GameSession{
+			g := &GameSession{
 				Status: tt.fields.Status,
 				Result: tt.fields.Result,
 				Wager:  tt.fields.Wager,
 			}
-			got, got1, err := s.FinishPlaying(tt.args.result, tt.args.wallet, tt.args.now)
+			got, err := g.FinishPlaying(tt.args.result, tt.args.now)
 			if !tt.wantErr(t, err) {
 				return
 			}
 			assert.Equal(t, tt.want, got)
-			assert.Equal(t, tt.want1, got1)
+			assert.Equal(t, tt.wantGameSession, g)
+		})
+	}
+}
+
+func TestGameSession_IsPlaying(t *testing.T) {
+	type fields struct {
+		Status GameStatus
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   bool
+	}{
+		{
+			name: "プレイ中の場合 => true",
+			fields: fields{
+				Status: GameStatusPlaying,
+			},
+			want: true,
+		},
+		{
+			name: "終了済みの場合 => false",
+			fields: fields{
+				Status: GameStatusFinished,
+			},
+			want: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := GameSession{
+				Status: tt.fields.Status,
+			}
+			assert.Equal(t, tt.want, g.IsPlaying())
 		})
 	}
 }
@@ -165,7 +238,7 @@ func TestNewGameSessionService(t *testing.T) {
 	tests := []struct {
 		name    string
 		args    args
-		want    GameSessionService
+		want    GameSessionStartService
 		wantErr assert.ErrorAssertionFunc
 	}{
 		{
@@ -184,7 +257,7 @@ func TestNewGameSessionService(t *testing.T) {
 					},
 				},
 			},
-			want: GameSessionService{
+			want: GameSessionStartService{
 				playingSessions: []GameSession{
 					{
 						UserID: faker.UUIDv5("u1"),
@@ -216,7 +289,7 @@ func TestNewGameSessionService(t *testing.T) {
 					},
 				},
 			},
-			want:    GameSessionService{},
+			want:    GameSessionStartService{},
 			wantErr: assert.Error,
 		},
 		{
@@ -230,7 +303,7 @@ func TestNewGameSessionService(t *testing.T) {
 					},
 				},
 			},
-			want:    GameSessionService{},
+			want:    GameSessionStartService{},
 			wantErr: assert.Error,
 		},
 	}
@@ -255,7 +328,7 @@ func TestGameSessionService_StartPlaying(t *testing.T) {
 	type args struct {
 		id     uuid.UUID
 		gameID GameID
-		wager  int
+		wager  Coins
 		now    time.Time
 	}
 	tests := []struct {
@@ -318,7 +391,7 @@ func TestGameSessionService_StartPlaying(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := &GameSessionService{
+			s := &GameSessionStartService{
 				userID:          tt.fields.userID,
 				playingSessions: tt.fields.playingSessions,
 			}
