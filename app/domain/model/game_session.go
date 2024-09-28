@@ -38,6 +38,7 @@ const (
 )
 
 type GameSession struct {
+	ID         uuid.UUID
 	UserID     uuid.UUID
 	GameID     GameID
 	Status     GameStatus
@@ -48,8 +49,9 @@ type GameSession struct {
 	FinishedAt time.Time
 }
 
-func NewGameSession(userID uuid.UUID, gameID GameID, wager int, payout int, status GameStatus, result GameResult, startedAt time.Time, finishedAt time.Time) GameSession {
+func NewGameSession(id uuid.UUID, userID uuid.UUID, gameID GameID, wager int, payout int, status GameStatus, result GameResult, startedAt time.Time, finishedAt time.Time) GameSession {
 	return GameSession{
+		ID:         id,
 		UserID:     userID,
 		GameID:     gameID,
 		Status:     status,
@@ -113,13 +115,13 @@ func NewGameSessionService(ctx context.Context, userID uuid.UUID, playingSession
 	return GameSessionService{userID, playingSessions}, nil
 }
 
-func (s *GameSessionService) StartPlaying(gameID GameID, wager int, now time.Time) (GameSession, error) {
+func (s *GameSessionService) StartPlaying(id uuid.UUID, gameID GameID, wager int, now time.Time) (GameSession, error) {
 	for _, session := range s.playingSessions {
 		if session.GameID == gameID {
 			return GameSession{}, ErrGameAlreadyPlaying
 		}
 	}
-	sess := NewGameSession(s.userID, gameID, wager, 0, GameStatusPlaying, GameResultUnknown, now, time.Time{})
+	sess := NewGameSession(id, s.userID, gameID, wager, 0, GameStatusPlaying, GameResultUnknown, now, time.Time{})
 	s.playingSessions = append(s.playingSessions, sess)
 	return sess, nil
 }
