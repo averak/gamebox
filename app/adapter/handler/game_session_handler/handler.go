@@ -1,4 +1,4 @@
-package echo_handler
+package game_session_handler
 
 import (
 	"context"

@@ -1,0 +1,36 @@
+syntax = "proto3";
+package api;
+
+import "custom_option/custom_option.proto";
+import "resource/game.proto";
+
+service JankenService {
+  rpc ChooseHandV1(JankenServiceChooseHandV1Request) returns (JankenServiceChooseHandV1Response) {
+    option (custom_option.method_option) = {
+      method_error_definitions: [
+        {
+          code: METHOD_RESOURCE_NOT_FOUND
+          severity: ERROR_SEVERITY_WARNING
+          message: "The session does not exist."
+        }
+      ]
+    };
+  }
+}
+
+message JankenServiceChooseHandV1Request {
+  string session_id = 1;
+  JankenHand hand = 2;
+}
+
+message JankenServiceChooseHandV1Response {
+  resource.GameSession session = 1;
+  JankenHand opponent_hand = 2;
+}
+
+enum JankenHand {
+  JANKEN_HAND_UNSPECIFIED = 0;
+  JANKEN_HAND_ROCK = 1;
+  JANKEN_HAND_SCISSORS = 2;
+  JANKEN_HAND_PAPER = 3;
+}
