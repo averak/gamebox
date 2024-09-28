@@ -10,6 +10,8 @@ import (
 	"context"
 	"github.com/averak/gamebox/app/adapter/handler"
 	"github.com/averak/gamebox/app/adapter/handler/debug/echo_handler"
+	"github.com/averak/gamebox/app/adapter/handler/game_session_handler"
+	"github.com/averak/gamebox/app/adapter/handler/janken_handler"
 	"github.com/averak/gamebox/app/adapter/repoimpl"
 	"github.com/averak/gamebox/app/adapter/repoimpl/echo_repoimpl"
 	"github.com/averak/gamebox/app/infrastructure/connect/advice"
@@ -27,11 +29,13 @@ func InitializeAPIServerMux(ctx context.Context) (*http.ServeMux, error) {
 	if err != nil {
 		return nil, err
 	}
+	adviceAdvice := advice.NewAdvice(connection)
+	gameServiceHandler := game_session_handler.NewHandler(adviceAdvice)
+	jankenServiceHandler := janken_handler.NewHandler(adviceAdvice)
 	echoRepository := echo_repoimpl.NewRepository()
 	usecase := echo_usecase.NewUsecase(connection, echoRepository)
-	adviceAdvice := advice.NewAdvice(connection)
 	echoServiceHandler := echo_handler.NewHandler(usecase, adviceAdvice)
-	serveMux := handler.New(echoServiceHandler)
+	serveMux := handler.New(gameServiceHandler, jankenServiceHandler, echoServiceHandler)
 	return serveMux, nil
 }
 
