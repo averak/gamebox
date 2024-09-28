@@ -40,6 +40,7 @@ const (
 	GameResultDraw
 )
 
+// GameSession は、PvE ゲームのセッションを表します。
 type GameSession struct {
 	ID         uuid.UUID
 	UserID     uuid.UUID

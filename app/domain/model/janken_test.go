@@ -86,6 +86,7 @@ func TestJankenSession_Choose(t *testing.T) {
 
 	type fields struct {
 		GameSessionID uuid.UUID
+		Seed          int
 		Histories     []JankenHistory
 	}
 	type args struct {
@@ -225,6 +226,7 @@ func TestJankenSession_Choose(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			j := &JankenSession{
 				GameSessionID: tt.fields.GameSessionID,
+				Seed:          tt.fields.Seed,
 				Histories:     tt.fields.Histories,
 			}
 			got, got1, got2, err := j.Choose(tt.args.session, tt.args.hand, tt.args.now)
@@ -284,6 +286,7 @@ func TestJankenSession_turn(t *testing.T) {
 func TestJankenSession_nextOpponentHand(t *testing.T) {
 	type fields struct {
 		GameSessionID uuid.UUID
+		Seed          int
 		Histories     []JankenHistory
 	}
 	tests := []struct {
@@ -311,6 +314,7 @@ func TestJankenSession_nextOpponentHand(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			j := JankenSession{
 				GameSessionID: tt.fields.GameSessionID,
+				Seed:          tt.fields.Seed,
 				Histories:     tt.fields.Histories,
 			}
 
@@ -325,17 +329,17 @@ func TestJankenSession_nextOpponentHand(t *testing.T) {
 var (
 	// 次のターンに、必ず相手はグーを出すテンプレート。
 	JankenNextRockTemplate = JankenSession{
-		GameSessionID: uuid.MustParse("6a595161-a904-4176-9fc8-d8636e31ad05"),
-		Histories:     []JankenHistory{},
+		Seed:      7580503617577668000,
+		Histories: []JankenHistory{},
 	}
 	// 次のターンに、必ず相手はチョキを出すテンプレート。
 	JankenNextScissorsTemplate = JankenSession{
-		GameSessionID: uuid.MustParse("98227774-9189-45c7-ba91-8fe373af378c"),
-		Histories:     []JankenHistory{},
+		Seed:      5592583862009562302,
+		Histories: []JankenHistory{},
 	}
 	// 次のターンに、必ず相手はパーを出すテンプレート。
 	JankenNextPaperTemplate = JankenSession{
-		GameSessionID: uuid.MustParse("87fde965-b0c4-4572-9e34-d04b884c14c6"),
-		Histories:     []JankenHistory{},
+		Seed:      4779612329441809388,
+		Histories: []JankenHistory{},
 	}
 )
