@@ -1,0 +1,34 @@
+syntax = "proto3";
+package resource;
+
+import "google/protobuf/timestamp.proto";
+
+enum GameID {
+  GAME_ID_UNSPECIFIED = 0;
+  GAME_ID_SOLITAIRE = 1;
+  GAME_ID_BLACKJACK = 2;
+}
+
+enum GameStatus {
+  GAME_STATUS_UNSPECIFIED = 0;
+  GAME_STATUS_PLAYING = 1;
+  GAME_STATUS_FINISHED = 2;
+}
+
+enum GameResult {
+  GAME_RESULT_UNSPECIFIED = 0;
+  GAME_RESULT_WIN = 1;
+  GAME_RESULT_LOSE = 2;
+  GAME_RESULT_DRAW = 3;
+}
+
+message GameSession {
+  string session_id = 1;
+  GameID game_id = 2;
+  GameStatus status = 3;
+  GameResult result = 4;
+  int64 wager = 5;
+  int64 payout = 6;
+  google.protobuf.Timestamp started_at = 7;
+  optional google.protobuf.Timestamp finished_at = 8;
+}
