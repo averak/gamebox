@@ -29,15 +29,17 @@ func (mine JankenHand) Battle(opponent JankenHand) GameResult {
 	return GameResultLose
 }
 
-// JankenSession は、PvE のジャンケンを表します。
 type JankenSession struct {
 	GameSessionID uuid.UUID
+	Seed          int
 	Histories     []JankenHistory
 }
 
-func NewJankenSession(gameSessionID uuid.UUID) JankenSession {
+func NewJankenSession(gameSessionID uuid.UUID, seed int, histories []JankenHistory) JankenSession {
 	return JankenSession{
 		GameSessionID: gameSessionID,
+		Seed:          seed,
+		Histories:     histories,
 	}
 }
 
@@ -76,13 +78,7 @@ func (j JankenSession) turn() int {
 // nextOpponentHand は、次のターンでの相手の手を返します。
 // (ゲームセッションID, ターン数) の組み合わせで、決定論的に相手の手を決定します。
 func (j JankenSession) nextOpponentHand() JankenHand {
-	// ゲームセッションIDをシード値とする。
-	var seed int64
-	for _, b := range j.GameSessionID {
-		seed += int64(b)
-	}
-
-	source := rand.NewSource(seed + int64(j.turn()))
+	source := rand.NewSource(int64(j.Seed) + int64(j.turn()))
 	r := rand.New(source)
 	return JankenHand(r.Intn(3) + 1)
 }
@@ -120,5 +116,5 @@ func (s JankenSessionStartService) StartPlaying(id uuid.UUID, wager Coins, now t
 	if err != nil {
 		return GameSession{}, JankenSession{}, err
 	}
-	return session, NewJankenSession(session.ID), nil
+	return session, NewJankenSession(session.ID, rand.Int(), nil), nil
 }
