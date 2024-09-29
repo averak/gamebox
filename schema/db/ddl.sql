@@ -5,6 +5,7 @@
 CREATE TABLE "users"
 (
     "id"         UUID      NOT NULL,
+    "status"     INT       NOT NULL,
     "created_at" TIMESTAMP NOT NULL,
     "updated_at" TIMESTAMP NOT NULL,
     PRIMARY KEY ("id")

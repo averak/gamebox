@@ -14,6 +14,7 @@ import (
 	"github.com/averak/gamebox/app/adapter/handler/janken_handler"
 	"github.com/averak/gamebox/app/adapter/repoimpl"
 	"github.com/averak/gamebox/app/adapter/repoimpl/echo_repoimpl"
+	"github.com/averak/gamebox/app/adapter/repoimpl/user_repoimpl"
 	"github.com/averak/gamebox/app/infrastructure/connect/advice"
 	"github.com/averak/gamebox/app/infrastructure/db"
 	"github.com/averak/gamebox/app/usecase"
@@ -29,7 +30,8 @@ func InitializeAPIServerMux(ctx context.Context) (*http.ServeMux, error) {
 	if err != nil {
 		return nil, err
 	}
-	adviceAdvice := advice.NewAdvice(connection)
+	userRepository := user_repoimpl.NewRepository()
+	adviceAdvice := advice.NewAdvice(connection, userRepository)
 	gameServiceHandler := game_session_handler.NewHandler(adviceAdvice)
 	jankenServiceHandler := janken_handler.NewHandler(adviceAdvice)
 	echoRepository := echo_repoimpl.NewRepository()

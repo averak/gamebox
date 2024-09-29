@@ -4,8 +4,10 @@ import (
 	"context"
 	"errors"
 
+	"github.com/averak/gamebox/app/core/config"
 	"github.com/averak/gamebox/app/core/game_context"
 	"github.com/averak/gamebox/app/domain/model"
+	"github.com/averak/gamebox/app/domain/repository"
 	"github.com/averak/gamebox/app/domain/repository/transaction"
 	"github.com/averak/gamebox/app/infrastructure/connect/error_response"
 	"github.com/averak/gamebox/app/infrastructure/connect/mdval"
@@ -23,7 +25,7 @@ type (
 	Advice func(context.Context, proto.Message, mdval.IncomingMD, *MethodInfo, func(context.Context, game_context.GameContext, *model.User, mdval.IncomingMD) (proto.Message, error)) error
 )
 
-func NewAdvice(conn transaction.Connection) Advice {
+func NewAdvice(conn transaction.Connection, userRepo repository.UserRepository) Advice {
 	return func(ctx context.Context, req proto.Message, incomingMD mdval.IncomingMD, info *MethodInfo, method func(context.Context, game_context.GameContext, *model.User, mdval.IncomingMD) (proto.Message, error)) error {
 		params, err := fixPreconditionParams(ctx, incomingMD)
 		if err != nil {
@@ -31,7 +33,22 @@ func NewAdvice(conn transaction.Connection) Advice {
 		}
 		gctx := params.GameContext()
 
-		_, err = method(ctx, gctx, nil, incomingMD)
+		var principal *model.User
+		if !info.Option().GetSkipAuthenticate() {
+			principal, err = checkSession(ctx, config.Get(), userRepo, conn, incomingMD, gctx.Now())
+			if err != nil {
+				return err
+			}
+
+			if !info.Option().GetSkipUserStatusCheck() {
+				err = checkUserStatus(*principal)
+				if err != nil {
+					return err
+				}
+			}
+		}
+
+		_, err = method(ctx, gctx, principal, incomingMD)
 		if err != nil {
 			if errDef, ok := info.FindErrorDefinition(err); ok {
 				return error_response.New(errDef.GetCode(), errDef.GetSeverity(), errDef.GetMessage())
