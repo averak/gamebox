@@ -39,6 +39,13 @@ func NewAdvice(conn transaction.Connection, userRepo repository.UserRepository) 
 			if err != nil {
 				return err
 			}
+
+			if !info.Option().GetSkipUserStatusCheck() {
+				err = checkUserStatus(*principal)
+				if err != nil {
+					return err
+				}
+			}
 		}
 
 		_, err = method(ctx, gctx, principal, incomingMD)
