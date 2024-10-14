@@ -22,11 +22,14 @@ func NewRepository() repository.GameSessionRepository {
 	return &Repository{}
 }
 
-func (r Repository) Get(ctx context.Context, tx transaction.Transaction, id uuid.UUID) (model.GameSession, error) {
+func (r Repository) Get(ctx context.Context, tx transaction.Transaction, gameSessionID uuid.UUID, userID uuid.UUID) (model.GameSession, error) {
 	ctx, span := trace.StartSpan(ctx, "game_session_repoimpl.Get")
 	defer span.End()
 
-	dto, err := dao.UserGameSessions(dao.UserGameSessionWhere.ID.EQ(id.String())).One(ctx, tx)
+	dto, err := dao.UserGameSessions(
+		dao.UserGameSessionWhere.UserID.EQ(userID.String()),
+		dao.UserGameSessionWhere.ID.EQ(gameSessionID.String()),
+	).One(ctx, tx)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return model.GameSession{}, repository.ErrGameSessionNotFound
@@ -45,10 +48,10 @@ func (r Repository) Get(ctx context.Context, tx transaction.Transaction, id uuid
 		uuid.MustParse(dto.ID),
 		uuid.MustParse(dto.UserID),
 		model.GameID(dto.GameID),
-		wager,
-		payout,
 		model.GameStatus(dto.Status),
 		model.GameResult(dto.Result),
+		wager,
+		payout,
 		dto.StartedAt,
 		dto.FinishedAt.Time,
 	)

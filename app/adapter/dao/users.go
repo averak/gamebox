@@ -24,6 +24,7 @@ import (
 // User is an object representing the database table.
 type User struct {
 	ID        string    `boil:"id" json:"id" toml:"id" yaml:"id"`
+	Status    int       `boil:"status" json:"status" toml:"status" yaml:"status"`
 	CreatedAt time.Time `boil:"created_at" json:"created_at" toml:"created_at" yaml:"created_at"`
 	UpdatedAt time.Time `boil:"updated_at" json:"updated_at" toml:"updated_at" yaml:"updated_at"`
 
@@ -33,20 +34,24 @@ type User struct {
 
 var UserColumns = struct {
 	ID        string
+	Status    string
 	CreatedAt string
 	UpdatedAt string
 }{
 	ID:        "id",
+	Status:    "status",
 	CreatedAt: "created_at",
 	UpdatedAt: "updated_at",
 }
 
 var UserTableColumns = struct {
 	ID        string
+	Status    string
 	CreatedAt string
 	UpdatedAt string
 }{
 	ID:        "users.id",
+	Status:    "users.status",
 	CreatedAt: "users.created_at",
 	UpdatedAt: "users.updated_at",
 }
@@ -55,10 +60,12 @@ var UserTableColumns = struct {
 
 var UserWhere = struct {
 	ID        whereHelperstring
+	Status    whereHelperint
 	CreatedAt whereHelpertime_Time
 	UpdatedAt whereHelpertime_Time
 }{
 	ID:        whereHelperstring{field: "\"users\".\"id\""},
+	Status:    whereHelperint{field: "\"users\".\"status\""},
 	CreatedAt: whereHelpertime_Time{field: "\"users\".\"created_at\""},
 	UpdatedAt: whereHelpertime_Time{field: "\"users\".\"updated_at\""},
 }
@@ -91,8 +98,8 @@ func (r *userR) GetUserGameSessions() UserGameSessionSlice {
 type userL struct{}
 
 var (
-	userAllColumns            = []string{"id", "created_at", "updated_at"}
-	userColumnsWithoutDefault = []string{"id", "created_at", "updated_at"}
+	userAllColumns            = []string{"id", "status", "created_at", "updated_at"}
+	userColumnsWithoutDefault = []string{"id", "status", "created_at", "updated_at"}
 	userColumnsWithDefault    = []string{}
 	userPrimaryKeyColumns     = []string{"id"}
 	userGeneratedColumns      = []string{}

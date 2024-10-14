@@ -13,6 +13,7 @@ message MethodErrorDefinition {
 message MethodOption {
   repeated MethodErrorDefinition method_error_definitions = 1;
   bool skip_authenticate = 2;
+  bool skip_user_status_check = 3;
 }
 
 extend google.protobuf.MethodOptions {

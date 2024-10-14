@@ -169,14 +169,17 @@ var UserGameSessionWhere = struct {
 
 // UserGameSessionRels is where relationship names are stored.
 var UserGameSessionRels = struct {
-	User string
+	User                         string
+	GameSessionUserJankenSession string
 }{
-	User: "User",
+	User:                         "User",
+	GameSessionUserJankenSession: "GameSessionUserJankenSession",
 }
 
 // userGameSessionR is where relationships are stored.
 type userGameSessionR struct {
-	User *User `boil:"User" json:"User" toml:"User" yaml:"User"`
+	User                         *User              `boil:"User" json:"User" toml:"User" yaml:"User"`
+	GameSessionUserJankenSession *UserJankenSession `boil:"GameSessionUserJankenSession" json:"GameSessionUserJankenSession" toml:"GameSessionUserJankenSession" yaml:"GameSessionUserJankenSession"`
 }
 
 // NewStruct creates a new relationship struct
@@ -189,6 +192,13 @@ func (r *userGameSessionR) GetUser() *User {
 		return nil
 	}
 	return r.User
+}
+
+func (r *userGameSessionR) GetGameSessionUserJankenSession() *UserJankenSession {
+	if r == nil {
+		return nil
+	}
+	return r.GameSessionUserJankenSession
 }
 
 // userGameSessionL is where Load methods for each relationship are stored.
@@ -518,6 +528,17 @@ func (o *UserGameSession) User(mods ...qm.QueryMod) userQuery {
 	return Users(queryMods...)
 }
 
+// GameSessionUserJankenSession pointed to by the foreign key.
+func (o *UserGameSession) GameSessionUserJankenSession(mods ...qm.QueryMod) userJankenSessionQuery {
+	queryMods := []qm.QueryMod{
+		qm.Where("\"game_session_id\" = ?", o.ID),
+	}
+
+	queryMods = append(queryMods, mods...)
+
+	return UserJankenSessions(queryMods...)
+}
+
 // LoadUser allows an eager lookup of values, cached into the
 // loaded structs of the objects. This is for an N-1 relationship.
 func (userGameSessionL) LoadUser(ctx context.Context, e boil.ContextExecutor, singular bool, maybeUserGameSession interface{}, mods queries.Applicator) error {
@@ -638,6 +659,123 @@ func (userGameSessionL) LoadUser(ctx context.Context, e boil.ContextExecutor, si
 	return nil
 }
 
+// LoadGameSessionUserJankenSession allows an eager lookup of values, cached into the
+// loaded structs of the objects. This is for a 1-1 relationship.
+func (userGameSessionL) LoadGameSessionUserJankenSession(ctx context.Context, e boil.ContextExecutor, singular bool, maybeUserGameSession interface{}, mods queries.Applicator) error {
+	var slice []*UserGameSession
+	var object *UserGameSession
+
+	if singular {
+		var ok bool
+		object, ok = maybeUserGameSession.(*UserGameSession)
+		if !ok {
+			object = new(UserGameSession)
+			ok = queries.SetFromEmbeddedStruct(&object, &maybeUserGameSession)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", object, maybeUserGameSession))
+			}
+		}
+	} else {
+		s, ok := maybeUserGameSession.(*[]*UserGameSession)
+		if ok {
+			slice = *s
+		} else {
+			ok = queries.SetFromEmbeddedStruct(&slice, maybeUserGameSession)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", slice, maybeUserGameSession))
+			}
+		}
+	}
+
+	args := make(map[interface{}]struct{})
+	if singular {
+		if object.R == nil {
+			object.R = &userGameSessionR{}
+		}
+		args[object.ID] = struct{}{}
+	} else {
+		for _, obj := range slice {
+			if obj.R == nil {
+				obj.R = &userGameSessionR{}
+			}
+
+			args[obj.ID] = struct{}{}
+		}
+	}
+
+	if len(args) == 0 {
+		return nil
+	}
+
+	argsSlice := make([]interface{}, len(args))
+	i := 0
+	for arg := range args {
+		argsSlice[i] = arg
+		i++
+	}
+
+	query := NewQuery(
+		qm.From(`user_janken_sessions`),
+		qm.WhereIn(`user_janken_sessions.game_session_id in ?`, argsSlice...),
+	)
+	if mods != nil {
+		mods.Apply(query)
+	}
+
+	results, err := query.QueryContext(ctx, e)
+	if err != nil {
+		return errors.Wrap(err, "failed to eager load UserJankenSession")
+	}
+
+	var resultSlice []*UserJankenSession
+	if err = queries.Bind(results, &resultSlice); err != nil {
+		return errors.Wrap(err, "failed to bind eager loaded slice UserJankenSession")
+	}
+
+	if err = results.Close(); err != nil {
+		return errors.Wrap(err, "failed to close results of eager load for user_janken_sessions")
+	}
+	if err = results.Err(); err != nil {
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for user_janken_sessions")
+	}
+
+	if len(userJankenSessionAfterSelectHooks) != 0 {
+		for _, obj := range resultSlice {
+			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
+				return err
+			}
+		}
+	}
+
+	if len(resultSlice) == 0 {
+		return nil
+	}
+
+	if singular {
+		foreign := resultSlice[0]
+		object.R.GameSessionUserJankenSession = foreign
+		if foreign.R == nil {
+			foreign.R = &userJankenSessionR{}
+		}
+		foreign.R.GameSession = object
+	}
+
+	for _, local := range slice {
+		for _, foreign := range resultSlice {
+			if local.ID == foreign.GameSessionID {
+				local.R.GameSessionUserJankenSession = foreign
+				if foreign.R == nil {
+					foreign.R = &userJankenSessionR{}
+				}
+				foreign.R.GameSession = local
+				break
+			}
+		}
+	}
+
+	return nil
+}
+
 // SetUser of the userGameSession to the related item.
 // Sets o.R.User to related.
 // Adds o to related.R.UserGameSessions.
@@ -682,6 +820,56 @@ func (o *UserGameSession) SetUser(ctx context.Context, exec boil.ContextExecutor
 		related.R.UserGameSessions = append(related.R.UserGameSessions, o)
 	}
 
+	return nil
+}
+
+// SetGameSessionUserJankenSession of the userGameSession to the related item.
+// Sets o.R.GameSessionUserJankenSession to related.
+// Adds o to related.R.GameSession.
+func (o *UserGameSession) SetGameSessionUserJankenSession(ctx context.Context, exec boil.ContextExecutor, insert bool, related *UserJankenSession) error {
+	var err error
+
+	if insert {
+		related.GameSessionID = o.ID
+
+		if err = related.Insert(ctx, exec, boil.Infer()); err != nil {
+			return errors.Wrap(err, "failed to insert into foreign table")
+		}
+	} else {
+		updateQuery := fmt.Sprintf(
+			"UPDATE \"user_janken_sessions\" SET %s WHERE %s",
+			strmangle.SetParamNames("\"", "\"", 1, []string{"game_session_id"}),
+			strmangle.WhereClause("\"", "\"", 2, userJankenSessionPrimaryKeyColumns),
+		)
+		values := []interface{}{o.ID, related.GameSessionID}
+
+		if boil.IsDebug(ctx) {
+			writer := boil.DebugWriterFrom(ctx)
+			fmt.Fprintln(writer, updateQuery)
+			fmt.Fprintln(writer, values)
+		}
+		if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+			return errors.Wrap(err, "failed to update foreign table")
+		}
+
+		related.GameSessionID = o.ID
+	}
+
+	if o.R == nil {
+		o.R = &userGameSessionR{
+			GameSessionUserJankenSession: related,
+		}
+	} else {
+		o.R.GameSessionUserJankenSession = related
+	}
+
+	if related.R == nil {
+		related.R = &userJankenSessionR{
+			GameSession: o,
+		}
+	} else {
+		related.R.GameSession = o
+	}
 	return nil
 }
 
