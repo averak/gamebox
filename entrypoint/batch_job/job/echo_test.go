@@ -13,6 +13,7 @@ import (
 	"github.com/averak/gamebox/testutils/bdd"
 	"github.com/averak/gamebox/testutils/faker"
 	"github.com/averak/gamebox/testutils/fixture"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -33,19 +34,11 @@ func TestPurgeOldEchos_Run(t *testing.T) {
 				seeds: []fixture.Seed{
 					&dao.Echo{
 						ID:        faker.UUIDv5("e1").String(),
-						CreatedAt: now.Add(-23 * time.Hour),
-					},
-					&dao.Echo{
-						ID:        faker.UUIDv5("e2").String(),
 						CreatedAt: now.Add(-24 * time.Hour),
 					},
 					&dao.Echo{
-						ID:        faker.UUIDv5("e3").String(),
-						CreatedAt: now.Add(-25 * time.Hour),
-					},
-					&dao.Echo{
-						ID:        faker.UUIDv5("e4").String(),
-						CreatedAt: now.Add(-26 * time.Hour),
+						ID:        faker.UUIDv5("e2").String(),
+						CreatedAt: now.Add(-24 * time.Hour).Add(time.Millisecond),
 					},
 				},
 			},
@@ -57,8 +50,9 @@ func TestPurgeOldEchos_Run(t *testing.T) {
 					},
 					Then: func(t *testing.T, dtos []*dao.Echo, err error) {
 						require.NoError(t, err)
+
 						gotIDs := vector.Map(dtos, func(dto *dao.Echo) string { return dto.ID })
-						require.Equal(t, []string{faker.UUIDv5("e1").String(), faker.UUIDv5("e2").String()}, gotIDs)
+						assert.ElementsMatch(t, []string{faker.UUIDv5("e2").String()}, gotIDs)
 					},
 				},
 			},
@@ -69,7 +63,7 @@ func TestPurgeOldEchos_Run(t *testing.T) {
 			fixture.SetupSeeds(t, context.Background(), given.seeds...)
 			defer testutils.Teardown(t)
 
-			j := purgeOldEchosJob{}
+			j := NewPurgeOldEchos()
 			err := j.Run(context.Background(), when.gctx, conn)
 
 			var dtos []*dao.Echo
