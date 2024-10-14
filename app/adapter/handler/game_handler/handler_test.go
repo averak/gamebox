@@ -127,8 +127,8 @@ func Test_handler_GetSessionV1(t *testing.T) {
 	}
 	for _, tt := range tests {
 		tt.Run(t, func(t *testing.T, given given, when when, then then) {
-			defer testutils.Teardown(t)
 			fixture.Setup(t, given.fixtures...)
+			defer testutils.Teardown(t)
 
 			got, err := testconnect.MethodInvoke(
 				apiconnect.NewGameServiceClient(http.DefaultClient, server.URL).GetSessionV1,
