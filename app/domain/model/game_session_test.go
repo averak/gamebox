@@ -21,10 +21,10 @@ func TestNewGameSession(t *testing.T) {
 		id         uuid.UUID
 		userID     uuid.UUID
 		gameID     GameID
-		wager      Coins
-		payout     Coins
 		status     GameStatus
 		result     GameResult
+		wager      Coins
+		payout     Coins
 		startedAt  time.Time
 		finishedAt time.Time
 	}
@@ -55,7 +55,7 @@ func TestNewGameSession(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewGameSession(tt.args.id, tt.args.userID, tt.args.gameID, tt.args.wager, tt.args.payout, tt.args.status, tt.args.result, tt.args.startedAt, tt.args.finishedAt)
+			got, err := NewGameSession(tt.args.id, tt.args.userID, tt.args.gameID, tt.args.status, tt.args.result, tt.args.wager, tt.args.payout, tt.args.startedAt, tt.args.finishedAt)
 			if !tt.wantErr(t, err) {
 				return
 			}

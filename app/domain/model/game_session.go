@@ -53,7 +53,7 @@ type GameSession struct {
 	FinishedAt time.Time
 }
 
-func NewGameSession(id uuid.UUID, userID uuid.UUID, gameID GameID, wager Coins, payout Coins, status GameStatus, result GameResult, startedAt time.Time, finishedAt time.Time) (GameSession, error) {
+func NewGameSession(id uuid.UUID, userID uuid.UUID, gameID GameID, status GameStatus, result GameResult, wager Coins, payout Coins, startedAt time.Time, finishedAt time.Time) (GameSession, error) {
 	if wager <= 0 {
 		return GameSession{}, errors.New("wager must be positive")
 	}
@@ -130,7 +130,7 @@ func (s *GameSessionStartService) StartPlaying(id uuid.UUID, gameID GameID, wage
 			return GameSession{}, ErrGameAlreadyPlaying
 		}
 	}
-	sess, err := NewGameSession(id, s.userID, gameID, wager, 0, GameStatusPlaying, GameResultUnknown, now, time.Time{})
+	sess, err := NewGameSession(id, s.userID, gameID, GameStatusPlaying, GameResultUnknown, wager, 0, now, time.Time{})
 	if err != nil {
 		return GameSession{}, err
 	}
