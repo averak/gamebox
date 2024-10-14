@@ -1,10 +1,11 @@
-package janken_session_repoimpl
+package janken_session_repoimpl_test
 
 import (
 	"context"
 	"testing"
 
 	"github.com/averak/gamebox/app/adapter/dao"
+	"github.com/averak/gamebox/app/adapter/repoimpl/janken_session_repoimpl"
 	"github.com/averak/gamebox/app/domain/model"
 	"github.com/averak/gamebox/app/domain/repository"
 	"github.com/averak/gamebox/app/domain/repository/transaction"
@@ -96,7 +97,7 @@ func TestRepository_Get(t *testing.T) {
 
 			var got model.JankenSession
 			err := conn.BeginRoTransaction(context.Background(), func(ctx context.Context, tx transaction.Transaction) error {
-				r := Repository{}
+				r := janken_session_repoimpl.NewRepository()
 				var err error
 				got, err = r.Get(ctx, tx, tt.args.gameSessionID)
 				if err != nil {
@@ -247,7 +248,7 @@ func TestRepository_Save(t *testing.T) {
 
 			var got model.JankenSession
 			err := conn.BeginRwTransaction(context.Background(), func(ctx context.Context, tx transaction.Transaction) error {
-				r := Repository{}
+				r := janken_session_repoimpl.NewRepository()
 				err := r.Save(ctx, tx, tt.args.session)
 				if err != nil {
 					return err
@@ -267,7 +268,7 @@ func TestRepository_Save(t *testing.T) {
 	}
 }
 
-func Test_checkHistoryDiff(t *testing.T) {
+func Test_CheckHistoryDiff(t *testing.T) {
 	type args struct {
 		newDtos     []*dao.UserJankenSessionHistory
 		currentDtos []*dao.UserJankenSessionHistory
@@ -363,9 +364,9 @@ func Test_checkHistoryDiff(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotUpserted, gotDeleted := checkHistoryDiff(tt.args.newDtos, tt.args.currentDtos)
-			assert.Equalf(t, tt.wantUpserted, gotUpserted, "checkHistoryDiff(%v, %v)", tt.args.newDtos, tt.args.currentDtos)
-			assert.Equalf(t, tt.wantDeleted, gotDeleted, "checkHistoryDiff(%v, %v)", tt.args.newDtos, tt.args.currentDtos)
+			gotUpserted, gotDeleted := janken_session_repoimpl.CheckHistoryDiff(tt.args.newDtos, tt.args.currentDtos)
+			assert.Equal(t, tt.wantUpserted, gotUpserted)
+			assert.Equal(t, tt.wantDeleted, gotDeleted)
 		})
 	}
 }

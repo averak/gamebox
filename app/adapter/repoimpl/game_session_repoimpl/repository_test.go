@@ -1,4 +1,4 @@
-package game_session_repoimpl
+package game_session_repoimpl_test
 
 import (
 	"context"
@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/averak/gamebox/app/adapter/dao"
+	"github.com/averak/gamebox/app/adapter/repoimpl/game_session_repoimpl"
 	"github.com/averak/gamebox/app/domain/model"
 	"github.com/averak/gamebox/app/domain/repository"
 	"github.com/averak/gamebox/app/domain/repository/transaction"
@@ -29,7 +30,8 @@ func TestRepository_Get(t *testing.T) {
 		seeds []fixture.Seed
 	}
 	type when struct {
-		id uuid.UUID
+		gameSessionID uuid.UUID
+		userID        uuid.UUID
 	}
 	type then = func(t *testing.T, got model.GameSession, err error)
 	tests := []bdd.Testcase[given, when, then]{
@@ -55,9 +57,10 @@ func TestRepository_Get(t *testing.T) {
 			},
 			Behaviors: []bdd.Behavior[when, then]{
 				{
-					Name: "ID で検索できる",
+					Name: "存在する => 取得できる",
 					When: when{
-						id: faker.UUIDv5("gs1"),
+						gameSessionID: faker.UUIDv5("gs1"),
+						userID:        faker.UUIDv5("u1"),
 					},
 					Then: func(t *testing.T, got model.GameSession, err error) {
 						require.NoError(t, err)
@@ -77,9 +80,20 @@ func TestRepository_Get(t *testing.T) {
 					},
 				},
 				{
-					Name: "ID が存在しない => エラー",
+					Name: "ゲームセッションID が存在しない => エラー",
 					When: when{
-						id: faker.UUIDv5("not found"),
+						gameSessionID: faker.UUIDv5("not found"),
+						userID:        faker.UUIDv5("u1"),
+					},
+					Then: func(t *testing.T, got model.GameSession, err error) {
+						assert.ErrorIs(t, err, repository.ErrGameSessionNotFound)
+					},
+				},
+				{
+					Name: "ユーザID が存在しない => エラー",
+					When: when{
+						gameSessionID: faker.UUIDv5("gs1"),
+						userID:        faker.UUIDv5("not found"),
 					},
 					Then: func(t *testing.T, got model.GameSession, err error) {
 						assert.ErrorIs(t, err, repository.ErrGameSessionNotFound)
@@ -95,9 +109,9 @@ func TestRepository_Get(t *testing.T) {
 
 			var got model.GameSession
 			err := conn.BeginRoTransaction(context.Background(), func(ctx context.Context, tx transaction.Transaction) error {
-				r := NewRepository()
+				r := game_session_repoimpl.NewRepository()
 				var err error
-				got, err = r.Get(ctx, tx, when.id)
+				got, err = r.Get(ctx, tx, when.gameSessionID, when.userID)
 				return err
 			})
 			then(t, got, err)
@@ -222,7 +236,7 @@ func TestRepository_Save(t *testing.T) {
 
 			var dtos []*dao.UserGameSession
 			err := conn.BeginRwTransaction(context.Background(), func(ctx context.Context, tx transaction.Transaction) error {
-				r := NewRepository()
+				r := game_session_repoimpl.NewRepository()
 				err := r.Save(ctx, tx, when.sessions...)
 				if err != nil {
 					return err

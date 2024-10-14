@@ -79,7 +79,7 @@ func (r Repository) Save(ctx context.Context, tx transaction.Transaction, sessio
 			return err
 		}
 
-		upserted, deleted := checkHistoryDiff(dtos, currentDtos)
+		upserted, deleted := CheckHistoryDiff(dtos, currentDtos)
 		_, err = dao.UserJankenSessionHistorySlice(upserted).UpsertAll(ctx, tx, true, dao.UserJankenSessionHistoryPrimaryKeyColumns, boil.Infer(), boil.Infer())
 		if err != nil {
 			return err
@@ -93,8 +93,8 @@ func (r Repository) Save(ctx context.Context, tx transaction.Transaction, sessio
 	return nil
 }
 
-// checkHistoryDiff は、新しい履歴と現在の履歴を比較して、作成/更新/削除された履歴を仕分けます。
-func checkHistoryDiff(newDtos, currentDtos []*dao.UserJankenSessionHistory) (upserted []*dao.UserJankenSessionHistory, deleted []*dao.UserJankenSessionHistory) {
+// CheckHistoryDiff は、新しい履歴と現在の履歴を比較して、作成/更新/削除された履歴を仕分けます。
+func CheckHistoryDiff(newDtos, currentDtos []*dao.UserJankenSessionHistory) (upserted []*dao.UserJankenSessionHistory, deleted []*dao.UserJankenSessionHistory) {
 	currentMap := make(map[int]*dao.UserJankenSessionHistory)
 	for _, current := range currentDtos {
 		currentMap[current.Turn] = current

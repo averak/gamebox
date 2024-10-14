@@ -1,10 +1,11 @@
-package user_repoimpl
+package user_repoimpl_test
 
 import (
 	"context"
 	"testing"
 
 	"github.com/averak/gamebox/app/adapter/dao"
+	"github.com/averak/gamebox/app/adapter/repoimpl/user_repoimpl"
 	"github.com/averak/gamebox/app/domain/model"
 	"github.com/averak/gamebox/app/domain/repository"
 	"github.com/averak/gamebox/app/domain/repository/transaction"
@@ -63,7 +64,7 @@ func TestRepository_Get(t *testing.T) {
 
 			var got model.User
 			err := conn.BeginRoTransaction(context.Background(), func(ctx context.Context, tx transaction.Transaction) error {
-				r := Repository{}
+				r := user_repoimpl.NewRepository()
 				var err error
 				got, err = r.Get(ctx, tx, tt.args.userID)
 				if err != nil {
@@ -139,7 +140,7 @@ func TestRepository_Save(t *testing.T) {
 
 			var got []*dao.User
 			err := conn.BeginRwTransaction(context.Background(), func(ctx context.Context, tx transaction.Transaction) error {
-				r := Repository{}
+				r := user_repoimpl.NewRepository()
 				err := r.Save(ctx, tx, tt.args.user)
 				if err != nil {
 					return err

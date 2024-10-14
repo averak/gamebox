@@ -1,4 +1,4 @@
-package echo_repoimpl
+package echo_repoimpl_test
 
 import (
 	"context"
@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/averak/gamebox/app/adapter/dao"
+	"github.com/averak/gamebox/app/adapter/repoimpl/echo_repoimpl"
 	"github.com/averak/gamebox/app/domain/model"
 	"github.com/averak/gamebox/app/domain/repository/transaction"
 	"github.com/averak/gamebox/testutils"
@@ -103,7 +104,7 @@ func TestRepository_Save(t *testing.T) {
 
 			var dtos []*dao.Echo
 			err := conn.BeginRwTransaction(context.Background(), func(ctx context.Context, tx transaction.Transaction) error {
-				r := NewRepository()
+				r := echo_repoimpl.NewRepository()
 				err := r.Save(ctx, tx, when.echos...)
 				if err != nil {
 					return err

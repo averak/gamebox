@@ -5,7 +5,7 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/averak/gamebox/app/adapter/handler/debug/echo_handler"
-	"github.com/averak/gamebox/app/adapter/handler/game_session_handler"
+	"github.com/averak/gamebox/app/adapter/handler/game_handler"
 	"github.com/averak/gamebox/app/adapter/handler/janken_handler"
 	"github.com/averak/gamebox/app/core/config"
 	"github.com/averak/gamebox/app/infrastructure/connect/interceptor"
@@ -15,7 +15,7 @@ import (
 )
 
 var SuperSet = wire.NewSet(
-	game_session_handler.NewHandler,
+	game_handler.NewHandler,
 	janken_handler.NewHandler,
 	echo_handler.NewHandler,
 	New,
