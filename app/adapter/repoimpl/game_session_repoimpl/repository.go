@@ -22,7 +22,7 @@ func NewRepository() repository.GameSessionRepository {
 	return &Repository{}
 }
 
-func (r Repository) Get(ctx context.Context, tx transaction.Transaction, gameSessionID uuid.UUID, userID uuid.UUID) (model.GameSession, error) {
+func (r Repository) Get(ctx context.Context, tx transaction.Transaction, userID uuid.UUID, gameSessionID uuid.UUID) (model.GameSession, error) {
 	ctx, span := trace.StartSpan(ctx, "game_session_repoimpl.Get")
 	defer span.End()
 
@@ -36,25 +36,29 @@ func (r Repository) Get(ctx context.Context, tx transaction.Transaction, gameSes
 		}
 		return model.GameSession{}, err
 	}
-	wager, err := model.NewCoins(dto.Wager)
+	return toGameSessionModel(dto)
+}
+
+func (r Repository) GetByStatus(ctx context.Context, tx transaction.Transaction, userID uuid.UUID, status model.GameStatus) ([]model.GameSession, error) {
+	ctx, span := trace.StartSpan(ctx, "game_session_repoimpl.GetByStatus")
+	defer span.End()
+
+	dtos, err := dao.UserGameSessions(
+		dao.UserGameSessionWhere.UserID.EQ(userID.String()),
+		dao.UserGameSessionWhere.Status.EQ(int(status)),
+	).All(ctx, tx)
 	if err != nil {
-		return model.GameSession{}, err
+		return nil, err
 	}
-	payout, err := model.NewCoins(dto.Payout)
-	if err != nil {
-		return model.GameSession{}, err
+
+	res := make([]model.GameSession, len(dtos))
+	for i := range dtos {
+		res[i], err = toGameSessionModel(dtos[i])
+		if err != nil {
+			return nil, err
+		}
 	}
-	return model.NewGameSession(
-		uuid.MustParse(dto.ID),
-		uuid.MustParse(dto.UserID),
-		model.GameID(dto.GameID),
-		model.GameStatus(dto.Status),
-		model.GameResult(dto.Result),
-		wager,
-		payout,
-		dto.StartedAt,
-		dto.FinishedAt.Time,
-	)
+	return res, nil
 }
 
 func (r Repository) Save(ctx context.Context, tx transaction.Transaction, sessions ...model.GameSession) error {
@@ -79,4 +83,26 @@ func (r Repository) Save(ctx context.Context, tx transaction.Transaction, sessio
 		return err
 	}
 	return nil
+}
+
+func toGameSessionModel(dto *dao.UserGameSession) (model.GameSession, error) {
+	wager, err := model.NewCoins(dto.Wager)
+	if err != nil {
+		return model.GameSession{}, err
+	}
+	payout, err := model.NewCoins(dto.Payout)
+	if err != nil {
+		return model.GameSession{}, err
+	}
+	return model.NewGameSession(
+		uuid.MustParse(dto.ID),
+		uuid.MustParse(dto.UserID),
+		model.GameID(dto.GameID),
+		model.GameStatus(dto.Status),
+		model.GameResult(dto.Result),
+		wager,
+		payout,
+		dto.StartedAt,
+		dto.FinishedAt.Time,
+	)
 }

@@ -30,8 +30,8 @@ func TestRepository_Get(t *testing.T) {
 		seeds []fixture.Seed
 	}
 	type when struct {
-		gameSessionID uuid.UUID
 		userID        uuid.UUID
+		gameSessionID uuid.UUID
 	}
 	type then = func(t *testing.T, got model.GameSession, err error)
 	tests := []bdd.Testcase[given, when, then]{
@@ -59,8 +59,8 @@ func TestRepository_Get(t *testing.T) {
 				{
 					Name: "存在する => 取得できる",
 					When: when{
-						gameSessionID: faker.UUIDv5("gs1"),
 						userID:        faker.UUIDv5("u1"),
+						gameSessionID: faker.UUIDv5("gs1"),
 					},
 					Then: func(t *testing.T, got model.GameSession, err error) {
 						require.NoError(t, err)
@@ -82,8 +82,8 @@ func TestRepository_Get(t *testing.T) {
 				{
 					Name: "ゲームセッションID が存在しない => エラー",
 					When: when{
-						gameSessionID: faker.UUIDv5("not found"),
 						userID:        faker.UUIDv5("u1"),
+						gameSessionID: faker.UUIDv5("not found"),
 					},
 					Then: func(t *testing.T, got model.GameSession, err error) {
 						assert.ErrorIs(t, err, repository.ErrGameSessionNotFound)
@@ -92,8 +92,18 @@ func TestRepository_Get(t *testing.T) {
 				{
 					Name: "ユーザID が存在しない => エラー",
 					When: when{
-						gameSessionID: faker.UUIDv5("gs1"),
 						userID:        faker.UUIDv5("not found"),
+						gameSessionID: faker.UUIDv5("gs1"),
+					},
+					Then: func(t *testing.T, got model.GameSession, err error) {
+						assert.ErrorIs(t, err, repository.ErrGameSessionNotFound)
+					},
+				},
+				{
+					Name: "ユーザID が存在しない => エラー",
+					When: when{
+						userID:        faker.UUIDv5("not found"),
+						gameSessionID: faker.UUIDv5("gs1"),
 					},
 					Then: func(t *testing.T, got model.GameSession, err error) {
 						assert.ErrorIs(t, err, repository.ErrGameSessionNotFound)
@@ -111,7 +121,126 @@ func TestRepository_Get(t *testing.T) {
 			err := conn.BeginRoTransaction(context.Background(), func(ctx context.Context, tx transaction.Transaction) error {
 				r := game_session_repoimpl.NewRepository()
 				var err error
-				got, err = r.Get(ctx, tx, when.gameSessionID, when.userID)
+				got, err = r.Get(ctx, tx, when.userID, when.gameSessionID)
+				return err
+			})
+			then(t, got, err)
+		})
+	}
+}
+
+func TestRepository_GetByStatus(t *testing.T) {
+	conn := testutils.MustDBConn(t)
+
+	type given struct {
+		seeds []fixture.Seed
+	}
+	type when struct {
+		userID uuid.UUID
+		status model.GameStatus
+	}
+	type then = func(t *testing.T, got []model.GameSession, err error)
+	tests := []bdd.Testcase[given, when, then]{
+		{
+			Name: "レコードが存在する状態で",
+			Given: given{
+				seeds: []fixture.Seed{
+					&dao.User{
+						ID: faker.UUIDv5("u1").String(),
+					},
+					&dao.User{
+						ID: faker.UUIDv5("u2").String(),
+					},
+					&dao.UserGameSession{
+						ID:     faker.UUIDv5("gs1").String(),
+						UserID: faker.UUIDv5("u1").String(),
+						Status: int(model.GameStatusPlaying),
+						Wager:  1,
+					},
+					&dao.UserGameSession{
+						ID:     faker.UUIDv5("gs2").String(),
+						UserID: faker.UUIDv5("u1").String(),
+						Status: int(model.GameStatusPlaying),
+						Wager:  1,
+					},
+					&dao.UserGameSession{
+						ID:     faker.UUIDv5("gs3").String(),
+						UserID: faker.UUIDv5("u1").String(),
+						Status: int(model.GameStatusFinished),
+						Wager:  1,
+					},
+					&dao.UserGameSession{
+						ID:     faker.UUIDv5("gs4").String(),
+						UserID: faker.UUIDv5("u2").String(),
+						Status: int(model.GameStatusPlaying),
+						Wager:  1,
+					},
+				},
+			},
+			Behaviors: []bdd.Behavior[when, then]{
+				{
+					Name: "ユーザID/ステータスで検索できる (Playing)",
+					When: when{
+						userID: faker.UUIDv5("u1"),
+						status: model.GameStatusPlaying,
+					},
+					Then: func(t *testing.T, got []model.GameSession, err error) {
+						require.NoError(t, err)
+
+						want := []model.GameSession{
+							{
+								ID:     faker.UUIDv5("gs1"),
+								UserID: faker.UUIDv5("u1"),
+								Status: model.GameStatusPlaying,
+								Wager:  1,
+							},
+							{
+								ID:     faker.UUIDv5("gs2"),
+								UserID: faker.UUIDv5("u1"),
+								Status: model.GameStatusPlaying,
+								Wager:  1,
+							},
+						}
+						if diff := cmp.Diff(want, got); diff != "" {
+							t.Errorf("(-want, +got)\n%s", diff)
+						}
+					},
+				},
+				{
+					Name: "ユーザID/ステータスで検索できる (Finished)",
+					When: when{
+						userID: faker.UUIDv5("u1"),
+						status: model.GameStatusFinished,
+					},
+					Then: func(t *testing.T, got []model.GameSession, err error) {
+						require.NoError(t, err)
+
+						want := []model.GameSession{
+							{
+								ID:     faker.UUIDv5("gs3"),
+								UserID: faker.UUIDv5("u1"),
+								Status: model.GameStatusFinished,
+								Wager:  1,
+							},
+						}
+						if diff := cmp.Diff(want, got); diff != "" {
+							t.Errorf("(-want, +got)\n%s", diff)
+						}
+					},
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		tt.Run(t, func(t *testing.T, given given, when when, then then) {
+			defer testutils.Teardown(t)
+			fixture.SetupSeeds(t, context.Background(), given.seeds...)
+
+			var got []model.GameSession
+			err := conn.BeginRoTransaction(context.Background(), func(ctx context.Context, tx transaction.Transaction) error {
+				r := game_session_repoimpl.NewRepository()
+				var err error
+				got, err = r.GetByStatus(ctx, tx, when.userID, when.status)
 				return err
 			})
 			then(t, got, err)

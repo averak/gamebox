@@ -2,6 +2,7 @@ package pbconv
 
 import (
 	"github.com/averak/gamebox/app/domain/model"
+	"github.com/averak/gamebox/pkg/vector"
 	"github.com/averak/gamebox/protobuf/resource"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -21,6 +22,12 @@ func ToGameSessionPb(sess model.GameSession) *resource.GameSession {
 		StartedAt:  timestamppb.New(sess.StartedAt),
 		FinishedAt: finishedAt,
 	}
+}
+
+func ToGameSessionPbs(sessions []model.GameSession) []*resource.GameSession {
+	return vector.Map(sessions, func(sess model.GameSession) *resource.GameSession {
+		return ToGameSessionPb(sess)
+	})
 }
 
 func ToGameIDPb(id model.GameID) resource.GameID {

@@ -36,8 +36,14 @@ func (h handler) GetSessionV1Errors(errs *api.GameServiceGetSessionV1Errors) {
 }
 
 func (h handler) ListPlayingSessionsV1(ctx context.Context, req *advice.Request[*api.GameServiceListPlayingSessionsV1Request]) (*api.GameServiceListPlayingSessionsV1Response, error) {
-	// TODO: implement me
-	return &api.GameServiceListPlayingSessionsV1Response{}, nil
+	principal, _ := req.Principal()
+	result, err := h.uc.ListPlayingSession(ctx, principal)
+	if err != nil {
+		return nil, err
+	}
+	return &api.GameServiceListPlayingSessionsV1Response{
+		Sessions: pbconv.ToGameSessionPbs(result),
+	}, nil
 }
 
 func (h handler) StartPlayingV1(ctx context.Context, req *advice.Request[*api.GameServiceStartPlayingV1Request]) (*api.GameServiceStartPlayingV1Response, error) {
