@@ -175,7 +175,9 @@ func TestNewCoins(t *testing.T) {
 			args: args{
 				v: -1,
 			},
-			wantErr: assert.Error,
+			wantErr: func(t assert.TestingT, err error, i ...interface{}) bool {
+				return assert.ErrorIs(t, err, ErrCoinsMustBePositive)
+			},
 		},
 	}
 	for _, tt := range tests {

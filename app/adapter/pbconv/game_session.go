@@ -1,10 +1,16 @@
 package pbconv
 
 import (
+	"errors"
+
 	"github.com/averak/gamebox/app/domain/model"
 	"github.com/averak/gamebox/pkg/vector"
 	"github.com/averak/gamebox/protobuf/resource"
 	"google.golang.org/protobuf/types/known/timestamppb"
+)
+
+var (
+	ErrGameIDNotExists = errors.New("game id does not exists")
 )
 
 func ToGameSessionPb(sess model.GameSession) *resource.GameSession {
@@ -64,4 +70,19 @@ func ToGameResultPb(result model.GameResult) resource.GameResult {
 		return resource.GameResult_GAME_RESULT_UNSPECIFIED
 	}
 	return resource.GameResult_GAME_RESULT_UNSPECIFIED
+}
+
+func ToGameID(pb resource.GameID) (model.GameID, error) {
+	var res model.GameID
+	switch pb {
+	case resource.GameID_GAME_ID_SOLITAIRE:
+		res = model.GameIDSolitaire
+	case resource.GameID_GAME_ID_BLACKJACK:
+		res = model.GameIDBlackjack
+	case resource.GameID_GAME_ID_JANKEN:
+		res = model.GameIDJanken
+	case resource.GameID_GAME_ID_UNSPECIFIED:
+		return 0, ErrGameIDNotExists
+	}
+	return res, nil
 }

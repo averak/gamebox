@@ -61,7 +61,7 @@ message GameServiceListPlayingSessionsV1Response {
 }
 
 message GameServiceStartPlayingV1Request {
-  string game_id = 1;
+  resource.GameID game_id=1;
   int64 wager = 2;
 }
 

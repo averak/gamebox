@@ -14,6 +14,7 @@ var (
 	ErrGameAlreadyPlaying  = errors.New("game is already playing")
 	ErrGameAlreadyFinished = errors.New("game is already finished")
 	ErrGameNotPlaying      = errors.New("game is not playing")
+	ErrGameWagerIsInvalid  = errors.New("game wager is invalid")
 )
 
 type GameID int
@@ -129,6 +130,9 @@ func (s *GameSessionStartService) StartPlaying(id uuid.UUID, gameID GameID, wage
 		if session.GameID == gameID {
 			return GameSession{}, ErrGameAlreadyPlaying
 		}
+	}
+	if wager.IsZero() {
+		return GameSession{}, ErrGameWagerIsInvalid
 	}
 	sess, err := NewGameSession(id, s.userID, gameID, GameStatusPlaying, GameResultUnknown, wager, 0, now, time.Time{})
 	if err != nil {

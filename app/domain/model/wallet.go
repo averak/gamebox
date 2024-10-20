@@ -8,7 +8,8 @@ import (
 )
 
 var (
-	ErrInsufficientCoins = errors.New("insufficient coins")
+	ErrInsufficientCoins   = errors.New("insufficient coins")
+	ErrCoinsMustBePositive = errors.New("coins must be positive")
 )
 
 type Wallet struct {
@@ -38,7 +39,7 @@ type Coins int
 
 func NewCoins(v int) (Coins, error) {
 	if v < 0 {
-		return 0, fmt.Errorf("coins must be positive: %d", v)
+		return 0, fmt.Errorf("%w: %d", ErrCoinsMustBePositive, v)
 	}
 	return Coins(v), nil
 }
