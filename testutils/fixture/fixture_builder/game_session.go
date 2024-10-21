@@ -37,6 +37,16 @@ func (b GameSessionBuilder) Build() model.GameSession {
 	return b.data
 }
 
+func (b *GameSessionBuilder) GameID(v model.GameID) *GameSessionBuilder {
+	b.data.GameID = v
+	return b
+}
+
+func (b *GameSessionBuilder) Status(v model.GameStatus) *GameSessionBuilder {
+	b.data.Status = v
+	return b
+}
+
 func (b *GameSessionBuilder) StartedAt(v time.Time) *GameSessionBuilder {
 	b.data.StartedAt = v
 	return b

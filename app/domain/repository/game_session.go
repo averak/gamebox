@@ -15,5 +15,6 @@ var (
 
 type GameSessionRepository interface {
 	Get(ctx context.Context, tx transaction.Transaction, userID uuid.UUID, gameSessionID uuid.UUID) (model.GameSession, error)
+	GetByStatus(ctx context.Context, tx transaction.Transaction, userID uuid.UUID, status model.GameStatus) ([]model.GameSession, error)
 	Save(ctx context.Context, tx transaction.Transaction, sessions ...model.GameSession) error
 }
