@@ -261,3 +261,120 @@ func Test_handler_ListPlayingSessionsV1(t *testing.T) {
 		})
 	}
 }
+
+func Test_handler_StartPlayingV1(t *testing.T) {
+	mux, err := registry.InitializeAPIServerMux(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	server := httptest.NewServer(mux)
+	defer server.Close()
+
+	now := time.Now()
+
+	type given struct {
+		fixtures []fixture_builder.Fixture
+	}
+	type when struct {
+		req  *api.GameServiceStartPlayingV1Request
+		opts []testconnect.Option
+	}
+	type then = func(*testing.T, *connect.Response[api.GameServiceStartPlayingV1Response], error)
+	tests := []bdd.Testcase[given, when, then]{
+		{
+			Name: "プレイ中/終了済みのゲームセッションが存在する状態で",
+			Given: given{
+				fixtures: []fixture_builder.Fixture{
+					fixture_builder.New().
+						User(fixture_builder.NewUserBuilder(faker.UUIDv5("u1")).Build()).
+						GameSession(
+							fixture_builder.NewGameSessionBuilder(t, faker.UUIDv5("u1"), faker.UUIDv5("u1_gs1")).
+								GameID(model.GameIDSolitaire).
+								Status(model.GameStatusPlaying).
+								Build(),
+							fixture_builder.NewGameSessionBuilder(t, faker.UUIDv5("u1"), faker.UUIDv5("u1_gs2")).
+								GameID(model.GameIDBlackjack).
+								Status(model.GameStatusFinished).
+								Build(),
+						).
+						Build(),
+				},
+			},
+			Behaviors: []bdd.Behavior[when, then]{
+				{
+					Name: "未プレイ中のゲームIDを指定 => ゲームセッションを開始できる",
+					When: when{
+						req: &api.GameServiceStartPlayingV1Request{
+							GameId: resource.GameID_GAME_ID_BLACKJACK,
+							Wager:  100,
+						},
+						opts: []testconnect.Option{
+							testconnect.WithSpoofingUserID(faker.UUIDv5("u1")),
+							testconnect.WithIdempotencyKey(faker.UUIDv5("ik1")),
+							testconnect.WithAdjustedTime(now),
+						},
+					},
+					Then: func(t *testing.T, got *connect.Response[api.GameServiceStartPlayingV1Response], err error) {
+						require.NoError(t, err)
+
+						want := &api.GameServiceStartPlayingV1Response{
+							Session: &resource.GameSession{
+								SessionId:  faker.UUIDv5("ik1").String(),
+								GameId:     resource.GameID_GAME_ID_BLACKJACK,
+								Status:     resource.GameStatus_GAME_STATUS_PLAYING,
+								Wager:      100,
+								Payout:     0,
+								StartedAt:  timestamppb.New(now),
+								FinishedAt: nil,
+							},
+						}
+						assert.EqualExportedValues(t, want, got.Msg)
+					},
+				},
+				{
+					Name: "プレイ中のゲームIDを指定 => エラー",
+					When: when{
+						req: &api.GameServiceStartPlayingV1Request{
+							GameId: resource.GameID_GAME_ID_SOLITAIRE,
+							Wager:  100,
+						},
+						opts: []testconnect.Option{
+							testconnect.WithSpoofingUserID(faker.UUIDv5("u1")),
+						},
+					},
+					Then: func(t *testing.T, got *connect.Response[api.GameServiceStartPlayingV1Response], err error) {
+						testconnect.AssertErrorCode(t, api_errors.ErrorCode_METHOD_RESOURCE_CONFLICT, err)
+					},
+				},
+				{
+					Name: "不正な賭け金 => エラー",
+					When: when{
+						req: &api.GameServiceStartPlayingV1Request{
+							GameId: resource.GameID_GAME_ID_BLACKJACK,
+							Wager:  0,
+						},
+						opts: []testconnect.Option{
+							testconnect.WithSpoofingUserID(faker.UUIDv5("u1")),
+						},
+					},
+					Then: func(t *testing.T, got *connect.Response[api.GameServiceStartPlayingV1Response], err error) {
+						testconnect.AssertErrorCode(t, api_errors.ErrorCode_METHOD_ILLEGAL_ARGUMENT, err)
+					},
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		tt.Run(t, func(t *testing.T, given given, when when, then then) {
+			fixture.Setup(t, given.fixtures...)
+			defer testutils.Teardown(t)
+
+			got, err := testconnect.MethodInvoke(
+				apiconnect.NewGameServiceClient(http.DefaultClient, server.URL).StartPlayingV1,
+				when.req,
+				when.opts...,
+			)
+			then(t, got, err)
+		})
+	}
+}

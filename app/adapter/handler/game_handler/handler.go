@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/averak/gamebox/app/adapter/pbconv"
+	"github.com/averak/gamebox/app/domain/model"
 	"github.com/averak/gamebox/app/domain/repository"
 	"github.com/averak/gamebox/app/infrastructure/connect/advice"
 	"github.com/averak/gamebox/app/usecase/game_usecase"
@@ -47,9 +48,27 @@ func (h handler) ListPlayingSessionsV1(ctx context.Context, req *advice.Request[
 }
 
 func (h handler) StartPlayingV1(ctx context.Context, req *advice.Request[*api.GameServiceStartPlayingV1Request]) (*api.GameServiceStartPlayingV1Response, error) {
-	// TODO: implement me
-	return &api.GameServiceStartPlayingV1Response{}, nil
+	principal, _ := req.Principal()
+	gameID, err := pbconv.ToGameID(req.Msg().GetGameId())
+	if err != nil {
+		return nil, err
+	}
+	wager, err := model.NewCoins(int(req.Msg().GetWager()))
+	if err != nil {
+		return nil, err
+	}
+	result, err := h.uc.StartPlaying(ctx, req.GameContext(), principal, gameID, wager)
+	if err != nil {
+		return nil, err
+	}
+	return &api.GameServiceStartPlayingV1Response{
+		Session: pbconv.ToGameSessionPb(result),
+	}, nil
 }
 
 func (h handler) StartPlayingV1Errors(errs *api.GameServiceStartPlayingV1Errors) {
+	errs.Map(model.ErrCoinsMustBePositive, errs.ILLEGAL_ARGUMENT)
+	errs.Map(model.ErrGameWagerIsInvalid, errs.ILLEGAL_ARGUMENT)
+	errs.Map(model.ErrGameAlreadyPlaying, errs.RESOURCE_CONFLICT)
+	errs.Map(pbconv.ErrGameIDNotExists, errs.RESOURCE_NOT_FOUND)
 }

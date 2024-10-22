@@ -189,3 +189,55 @@ func TestToGameResultPb(t *testing.T) {
 		})
 	}
 }
+
+func TestToGameID(t *testing.T) {
+	type args struct {
+		pb resource.GameID
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    model.GameID
+		wantErr assert.ErrorAssertionFunc
+	}{
+		{
+			args: args{
+				pb: resource.GameID_GAME_ID_SOLITAIRE,
+			},
+			want:    model.GameIDSolitaire,
+			wantErr: assert.NoError,
+		},
+		{
+			args: args{
+				pb: resource.GameID_GAME_ID_BLACKJACK,
+			},
+			want:    model.GameIDBlackjack,
+			wantErr: assert.NoError,
+		},
+		{
+			args: args{
+				pb: resource.GameID_GAME_ID_JANKEN,
+			},
+			want:    model.GameIDJanken,
+			wantErr: assert.NoError,
+		},
+		{
+			name: "未指定の場合 => エラー",
+			args: args{
+				pb: resource.GameID_GAME_ID_UNSPECIFIED,
+			},
+			wantErr: func(t assert.TestingT, err error, i ...interface{}) bool {
+				return assert.ErrorIs(t, err, ErrGameIDNotExists)
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := ToGameID(tt.args.pb)
+			if !tt.wantErr(t, err) {
+				return
+			}
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}

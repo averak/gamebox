@@ -388,6 +388,22 @@ func TestGameSessionService_StartPlaying(t *testing.T) {
 				return assert.ErrorIs(t, err, ErrGameAlreadyPlaying)
 			},
 		},
+		{
+			name: "不正な賭け金 => エラー",
+			fields: fields{
+				userID:          faker.UUIDv5("u1"),
+				playingSessions: []GameSession{},
+			},
+			args: args{
+				id:     faker.UUIDv5("gs1"),
+				gameID: GameIDDummy1,
+				wager:  0,
+				now:    now,
+			},
+			wantErr: func(t assert.TestingT, err error, i ...interface{}) bool {
+				return assert.ErrorIs(t, err, ErrGameWagerIsInvalid)
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
