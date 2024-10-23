@@ -1,4 +1,4 @@
-package advice
+package aop
 
 import (
 	"errors"

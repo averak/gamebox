@@ -7,36 +7,36 @@ import (
 	connect "connectrpc.com/connect"
 	context "context"
 	connect1 "github.com/averak/gamebox/app/infrastructure/connect"
-	advice "github.com/averak/gamebox/app/infrastructure/connect/advice"
+	aop "github.com/averak/gamebox/app/infrastructure/connect/aop"
 	custom_option "github.com/averak/gamebox/protobuf/custom_option"
 	proto "google.golang.org/protobuf/proto"
 )
 
 type gamebox_EchoServiceHandler interface {
-	EchoV1(ctx context.Context, req *advice.Request[*EchoServiceEchoV1Request]) (*EchoServiceEchoV1Response, error)
+	EchoV1(ctx context.Context, req *aop.Request[*EchoServiceEchoV1Request]) (*EchoServiceEchoV1Response, error)
 }
 
-func NewEchoServiceHandler(handler gamebox_EchoServiceHandler, adv advice.Advice) gamebox_EchoServiceHandlerImpl {
+func NewEchoServiceHandler(handler gamebox_EchoServiceHandler, proxy aop.Proxy) gamebox_EchoServiceHandlerImpl {
 	service := File_api_debug_echo_proto.Services().ByName("EchoService")
-	causes := [1]map[error]*advice.MethodErrDefinition{{}}
-	methodOpts := [1]*advice.MethodOption{}
+	causes := [1]map[error]*aop.MethodErrDefinition{{}}
+	methodOpts := [1]*aop.MethodOption{}
 	for i, m := 0, service.Methods(); i < 1; i++ {
-		methodOpts[i] = proto.GetExtension(m.Get(i).Options(), custom_option.E_MethodOption).(*advice.MethodOption)
+		methodOpts[i] = proto.GetExtension(m.Get(i).Options(), custom_option.E_MethodOption).(*aop.MethodOption)
 	}
-	methodInfo := [1]*advice.MethodInfo{
-		advice.NewMethodInfo(methodOpts[0], causes[0]),
+	methodInfo := [1]*aop.MethodInfo{
+		aop.NewMethodInfo(methodOpts[0], causes[0]),
 	}
-	return gamebox_EchoServiceHandlerImpl{handler: handler, advice: adv, methodInfo: methodInfo}
+	return gamebox_EchoServiceHandlerImpl{handler: handler, proxy: proxy, methodInfo: methodInfo}
 }
 
 type gamebox_EchoServiceHandlerImpl struct {
 	handler    gamebox_EchoServiceHandler
-	advice     advice.Advice
-	methodInfo [1]*advice.MethodInfo
+	proxy      aop.Proxy
+	methodInfo [1]*aop.MethodInfo
 }
 
 func (h gamebox_EchoServiceHandlerImpl) EchoV1(ctx context.Context, req *connect.Request[EchoServiceEchoV1Request]) (*connect.Response[EchoServiceEchoV1Response], error) {
-	res, err := connect1.Invoke(ctx, req.Msg, req.Header(), h.methodInfo[0], h.handler.EchoV1, h.advice)
+	res, err := connect1.Invoke(ctx, req.Msg, req.Header(), h.methodInfo[0], h.handler.EchoV1, h.proxy)
 	if err != nil {
 		return nil, err
 	}

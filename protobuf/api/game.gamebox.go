@@ -7,57 +7,57 @@ import (
 	connect "connectrpc.com/connect"
 	context "context"
 	connect1 "github.com/averak/gamebox/app/infrastructure/connect"
-	advice "github.com/averak/gamebox/app/infrastructure/connect/advice"
+	aop "github.com/averak/gamebox/app/infrastructure/connect/aop"
 	custom_option "github.com/averak/gamebox/protobuf/custom_option"
 	proto "google.golang.org/protobuf/proto"
 )
 
 type gamebox_GameServiceHandler interface {
 	// ゲームセッションを取得します。
-	GetSessionV1(ctx context.Context, req *advice.Request[*GameServiceGetSessionV1Request]) (*GameServiceGetSessionV1Response, error)
+	GetSessionV1(ctx context.Context, req *aop.Request[*GameServiceGetSessionV1Request]) (*GameServiceGetSessionV1Response, error)
 	GetSessionV1Errors(errs *GameServiceGetSessionV1Errors)
 
 	// プレイ中のゲームセッションリストを取得します。
-	ListPlayingSessionsV1(ctx context.Context, req *advice.Request[*GameServiceListPlayingSessionsV1Request]) (*GameServiceListPlayingSessionsV1Response, error)
+	ListPlayingSessionsV1(ctx context.Context, req *aop.Request[*GameServiceListPlayingSessionsV1Request]) (*GameServiceListPlayingSessionsV1Response, error)
 
 	// ゲームを開始します。
 	// なお、チート対策のためゲーム終了判定はサーバー側で行います。
-	StartPlayingV1(ctx context.Context, req *advice.Request[*GameServiceStartPlayingV1Request]) (*GameServiceStartPlayingV1Response, error)
+	StartPlayingV1(ctx context.Context, req *aop.Request[*GameServiceStartPlayingV1Request]) (*GameServiceStartPlayingV1Response, error)
 	StartPlayingV1Errors(errs *GameServiceStartPlayingV1Errors)
 }
 
 type GameServiceGetSessionV1Errors struct {
 	// The session does not exist.
-	RESOURCE_NOT_FOUND *advice.MethodErrDefinition
+	RESOURCE_NOT_FOUND *aop.MethodErrDefinition
 
-	causes map[error]*advice.MethodErrDefinition
+	causes map[error]*aop.MethodErrDefinition
 }
 
-func (e *GameServiceGetSessionV1Errors) Map(from error, to *advice.MethodErrDefinition) {
+func (e *GameServiceGetSessionV1Errors) Map(from error, to *aop.MethodErrDefinition) {
 	e.causes[from] = to
 }
 
 type GameServiceStartPlayingV1Errors struct {
 	// The wager must be greater than 0.
-	ILLEGAL_ARGUMENT *advice.MethodErrDefinition
+	ILLEGAL_ARGUMENT *aop.MethodErrDefinition
 	// The game does not exist.
-	RESOURCE_NOT_FOUND *advice.MethodErrDefinition
+	RESOURCE_NOT_FOUND *aop.MethodErrDefinition
 	// The game is already being played.
-	RESOURCE_CONFLICT *advice.MethodErrDefinition
+	RESOURCE_CONFLICT *aop.MethodErrDefinition
 
-	causes map[error]*advice.MethodErrDefinition
+	causes map[error]*aop.MethodErrDefinition
 }
 
-func (e *GameServiceStartPlayingV1Errors) Map(from error, to *advice.MethodErrDefinition) {
+func (e *GameServiceStartPlayingV1Errors) Map(from error, to *aop.MethodErrDefinition) {
 	e.causes[from] = to
 }
 
-func NewGameServiceHandler(handler gamebox_GameServiceHandler, adv advice.Advice) gamebox_GameServiceHandlerImpl {
+func NewGameServiceHandler(handler gamebox_GameServiceHandler, proxy aop.Proxy) gamebox_GameServiceHandlerImpl {
 	service := File_api_game_proto.Services().ByName("GameService")
-	causes := [3]map[error]*advice.MethodErrDefinition{{}, {}, {}}
-	methodOpts := [3]*advice.MethodOption{}
+	causes := [3]map[error]*aop.MethodErrDefinition{{}, {}, {}}
+	methodOpts := [3]*aop.MethodOption{}
 	for i, m := 0, service.Methods(); i < 3; i++ {
-		methodOpts[i] = proto.GetExtension(m.Get(i).Options(), custom_option.E_MethodOption).(*advice.MethodOption)
+		methodOpts[i] = proto.GetExtension(m.Get(i).Options(), custom_option.E_MethodOption).(*aop.MethodOption)
 	}
 	handler.GetSessionV1Errors(&GameServiceGetSessionV1Errors{
 		RESOURCE_NOT_FOUND: methodOpts[0].GetMethodErrorDefinitions()[0],
@@ -69,22 +69,22 @@ func NewGameServiceHandler(handler gamebox_GameServiceHandler, adv advice.Advice
 		RESOURCE_CONFLICT:  methodOpts[2].GetMethodErrorDefinitions()[2],
 		causes:             causes[2],
 	})
-	methodInfo := [3]*advice.MethodInfo{
-		advice.NewMethodInfo(methodOpts[0], causes[0]),
-		advice.NewMethodInfo(methodOpts[1], causes[1]),
-		advice.NewMethodInfo(methodOpts[2], causes[2]),
+	methodInfo := [3]*aop.MethodInfo{
+		aop.NewMethodInfo(methodOpts[0], causes[0]),
+		aop.NewMethodInfo(methodOpts[1], causes[1]),
+		aop.NewMethodInfo(methodOpts[2], causes[2]),
 	}
-	return gamebox_GameServiceHandlerImpl{handler: handler, advice: adv, methodInfo: methodInfo}
+	return gamebox_GameServiceHandlerImpl{handler: handler, proxy: proxy, methodInfo: methodInfo}
 }
 
 type gamebox_GameServiceHandlerImpl struct {
 	handler    gamebox_GameServiceHandler
-	advice     advice.Advice
-	methodInfo [3]*advice.MethodInfo
+	proxy      aop.Proxy
+	methodInfo [3]*aop.MethodInfo
 }
 
 func (h gamebox_GameServiceHandlerImpl) GetSessionV1(ctx context.Context, req *connect.Request[GameServiceGetSessionV1Request]) (*connect.Response[GameServiceGetSessionV1Response], error) {
-	res, err := connect1.Invoke(ctx, req.Msg, req.Header(), h.methodInfo[0], h.handler.GetSessionV1, h.advice)
+	res, err := connect1.Invoke(ctx, req.Msg, req.Header(), h.methodInfo[0], h.handler.GetSessionV1, h.proxy)
 	if err != nil {
 		return nil, err
 	}
@@ -92,7 +92,7 @@ func (h gamebox_GameServiceHandlerImpl) GetSessionV1(ctx context.Context, req *c
 }
 
 func (h gamebox_GameServiceHandlerImpl) ListPlayingSessionsV1(ctx context.Context, req *connect.Request[GameServiceListPlayingSessionsV1Request]) (*connect.Response[GameServiceListPlayingSessionsV1Response], error) {
-	res, err := connect1.Invoke(ctx, req.Msg, req.Header(), h.methodInfo[1], h.handler.ListPlayingSessionsV1, h.advice)
+	res, err := connect1.Invoke(ctx, req.Msg, req.Header(), h.methodInfo[1], h.handler.ListPlayingSessionsV1, h.proxy)
 	if err != nil {
 		return nil, err
 	}
@@ -100,7 +100,7 @@ func (h gamebox_GameServiceHandlerImpl) ListPlayingSessionsV1(ctx context.Contex
 }
 
 func (h gamebox_GameServiceHandlerImpl) StartPlayingV1(ctx context.Context, req *connect.Request[GameServiceStartPlayingV1Request]) (*connect.Response[GameServiceStartPlayingV1Response], error) {
-	res, err := connect1.Invoke(ctx, req.Msg, req.Header(), h.methodInfo[2], h.handler.StartPlayingV1, h.advice)
+	res, err := connect1.Invoke(ctx, req.Msg, req.Header(), h.methodInfo[2], h.handler.StartPlayingV1, h.proxy)
 	if err != nil {
 		return nil, err
 	}

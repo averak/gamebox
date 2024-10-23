@@ -16,7 +16,7 @@ import (
 	"github.com/averak/gamebox/app/adapter/repoimpl/echo_repoimpl"
 	"github.com/averak/gamebox/app/adapter/repoimpl/game_session_repoimpl"
 	"github.com/averak/gamebox/app/adapter/repoimpl/user_repoimpl"
-	"github.com/averak/gamebox/app/infrastructure/connect/advice"
+	"github.com/averak/gamebox/app/infrastructure/connect/aop"
 	"github.com/averak/gamebox/app/infrastructure/db"
 	"github.com/averak/gamebox/app/usecase"
 	"github.com/averak/gamebox/app/usecase/echo_usecase"
@@ -35,16 +35,16 @@ func InitializeAPIServerMux(ctx context.Context) (*http.ServeMux, error) {
 	gameSessionRepository := game_session_repoimpl.NewRepository()
 	usecase := game_usecase.NewUsecase(connection, gameSessionRepository)
 	userRepository := user_repoimpl.NewRepository()
-	adviceAdvice := advice.NewAdvice(connection, userRepository)
-	gameServiceHandler := game_handler.NewHandler(usecase, adviceAdvice)
-	jankenServiceHandler := janken_handler.NewHandler(adviceAdvice)
+	proxy := aop.NewProxy(connection, userRepository)
+	gameServiceHandler := game_handler.NewHandler(usecase, proxy)
+	jankenServiceHandler := janken_handler.NewHandler(proxy)
 	echoRepository := echo_repoimpl.NewRepository()
 	echo_usecaseUsecase := echo_usecase.NewUsecase(connection, echoRepository)
-	echoServiceHandler := echo_handler.NewHandler(echo_usecaseUsecase, adviceAdvice)
+	echoServiceHandler := echo_handler.NewHandler(echo_usecaseUsecase, proxy)
 	serveMux := handler.New(gameServiceHandler, jankenServiceHandler, echoServiceHandler)
 	return serveMux, nil
 }
 
 // wire.go:
 
-var SuperSet = wire.NewSet(repoimpl.SuperSet, usecase.SuperSet, advice.NewAdvice, db.NewConnection)
+var SuperSet = wire.NewSet(repoimpl.SuperSet, usecase.SuperSet, aop.NewProxy, db.NewConnection)

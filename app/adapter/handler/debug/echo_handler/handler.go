@@ -3,7 +3,7 @@ package echo_handler
 import (
 	"context"
 
-	"github.com/averak/gamebox/app/infrastructure/connect/advice"
+	"github.com/averak/gamebox/app/infrastructure/connect/aop"
 	"github.com/averak/gamebox/app/usecase/echo_usecase"
 	"github.com/averak/gamebox/protobuf/api/debug"
 	"github.com/averak/gamebox/protobuf/api/debug/debugconnect"
@@ -14,11 +14,11 @@ type handler struct {
 	uc *echo_usecase.Usecase
 }
 
-func NewHandler(uc *echo_usecase.Usecase, advice advice.Advice) debugconnect.EchoServiceHandler {
-	return debug.NewEchoServiceHandler(&handler{uc: uc}, advice)
+func NewHandler(uc *echo_usecase.Usecase, proxy aop.Proxy) debugconnect.EchoServiceHandler {
+	return debug.NewEchoServiceHandler(&handler{uc: uc}, proxy)
 }
 
-func (h handler) EchoV1(ctx context.Context, req *advice.Request[*debug.EchoServiceEchoV1Request]) (*debug.EchoServiceEchoV1Response, error) {
+func (h handler) EchoV1(ctx context.Context, req *aop.Request[*debug.EchoServiceEchoV1Request]) (*debug.EchoServiceEchoV1Response, error) {
 	result, err := h.uc.Echo(ctx, req.GameContext(), req.Msg().GetMessage())
 	if err != nil {
 		return nil, err

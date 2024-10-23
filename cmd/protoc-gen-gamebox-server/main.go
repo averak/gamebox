@@ -9,10 +9,10 @@ import (
 func main() {
 	generator := handler.NewGenerator[*custom_option.MethodOption](handler.Config{
 		MethodOptExt:      custom_option.E_MethodOption,
-		MethodOptIdent:    protogen.GoImportPath("github.com/averak/gamebox/app/infrastructure/connect/advice").Ident("MethodOption"),
+		MethodOptIdent:    protogen.GoImportPath("github.com/averak/gamebox/app/infrastructure/connect/aop").Ident("MethodOption"),
 		MethodOptExtIdent: protogen.GoImportPath("github.com/averak/gamebox/protobuf/custom_option").Ident("E_MethodOption"),
-		MethodErrDefIdent: protogen.GoImportPath("github.com/averak/gamebox/app/infrastructure/connect/advice").Ident("MethodErrDefinition"),
-		AdviceIdent:       protogen.GoImportPath("github.com/averak/gamebox/app/infrastructure/connect/advice").Ident("Advice"),
+		MethodErrDefIdent: protogen.GoImportPath("github.com/averak/gamebox/app/infrastructure/connect/aop").Ident("MethodErrDefinition"),
+		ProxyIdent:        protogen.GoImportPath("github.com/averak/gamebox/app/infrastructure/connect/aop").Ident("Proxy"),
 	})
 	protogen.Options{}.Run(func(plugin *protogen.Plugin) error {
 		for _, file := range plugin.Files {
