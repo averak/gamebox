@@ -1,4 +1,4 @@
-package advice
+package aop
 
 import (
 	"github.com/averak/gamebox/app/domain/model"

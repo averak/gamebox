@@ -14,8 +14,8 @@ var (
 	ctxIdent             = protogen.GoImportPath("context").Ident("Context")
 	connectRequestIdent  = protogen.GoImportPath("connectrpc.com/connect").Ident("Request")
 	connectResponseIdent = protogen.GoImportPath("connectrpc.com/connect").Ident("Response")
-	methodInfoIdent      = protogen.GoImportPath("github.com/averak/gamebox/app/infrastructure/connect/advice").Ident("MethodInfo")
-	reqIdent             = protogen.GoImportPath("github.com/averak/gamebox/app/infrastructure/connect/advice").Ident("Request")
+	methodInfoIdent      = protogen.GoImportPath("github.com/averak/gamebox/app/infrastructure/connect/aop").Ident("MethodInfo")
+	reqIdent             = protogen.GoImportPath("github.com/averak/gamebox/app/infrastructure/connect/aop").Ident("Request")
 )
 
 type Config struct {
@@ -24,7 +24,7 @@ type Config struct {
 	MethodOptIdent    protogen.GoIdent
 	MethodOptExtIdent protogen.GoIdent
 	MethodErrDefIdent protogen.GoIdent
-	AdviceIdent       protogen.GoIdent
+	ProxyIdent        protogen.GoIdent
 }
 
 type MethodOption interface {
@@ -84,13 +84,13 @@ func (g Generator[MethodOpt]) generateHandlerImpl(gf *protogen.GeneratedFile, se
 
 	gf.P("type ", handlerImplName(service), " struct {")
 	gf.P("handler gamebox_", service.GoName, "Handler")
-	gf.P("advice ", g.conf.AdviceIdent)
+	gf.P("proxy ", g.conf.ProxyIdent)
 	gf.P("methodInfo [", len(service.Methods), "]*", methodInfoIdent)
 	gf.P("}")
 	gf.P()
 	for i, method := range service.Methods {
 		gf.P("func (h ", handlerImplName(service), ") ", method.GoName, "(ctx ", ctxIdent, ", req *", connectRequestIdent, "[", method.Input.GoIdent, "]) (*", connectResponseIdent, "[", method.Output.GoIdent, "], error) {")
-		gf.P("res, err := ", methodInvokeIdent, "(ctx, req.Msg, req.Header(), h.methodInfo", "[", i, "], h.handler.", method.GoName, ", h.advice)")
+		gf.P("res, err := ", methodInvokeIdent, "(ctx, req.Msg, req.Header(), h.methodInfo", "[", i, "], h.handler.", method.GoName, ", h.proxy)")
 		gf.P("if err != nil {")
 		gf.P("return nil, err")
 		gf.P("}")
@@ -102,9 +102,9 @@ func (g Generator[MethodOpt]) generateHandlerImpl(gf *protogen.GeneratedFile, se
 
 func (g Generator[MethodOpt]) generateHandlerConstructor(gf *protogen.GeneratedFile, service *protogen.Service, file *protogen.File) {
 	extIdent := protogen.GoImportPath("google.golang.org/protobuf/proto").Ident("GetExtension")
-	newMethodInfoIdent := protogen.GoImportPath("github.com/averak/gamebox/app/infrastructure/connect/advice").Ident("NewMethodInfo")
+	newMethodInfoIdent := protogen.GoImportPath("github.com/averak/gamebox/app/infrastructure/connect/aop").Ident("NewMethodInfo")
 
-	gf.P("func New", service.GoName, "Handler(handler gamebox_", service.GoName, "Handler, adv ", g.conf.AdviceIdent, ") ", handlerImplName(service), " {")
+	gf.P("func New", service.GoName, "Handler(handler gamebox_", service.GoName, "Handler, proxy ", g.conf.ProxyIdent, ") ", handlerImplName(service), " {")
 	gf.P("service := ", file.GoDescriptorIdent, ".Services().ByName(\"", service.GoName, "\")")
 	gf.P("causes := [", len(service.Methods), "]map[error]*", g.conf.MethodErrDefIdent, "{", strings.Repeat("{},", len(service.Methods)), "}")
 	gf.P("methodOpts := [", len(service.Methods), "]*", g.conf.MethodOptIdent, "{}")
@@ -128,7 +128,7 @@ func (g Generator[MethodOpt]) generateHandlerConstructor(gf *protogen.GeneratedF
 		gf.P(newMethodInfoIdent, "(methodOpts[", i, "], causes[", i, "]),")
 	}
 	gf.P("}")
-	gf.P("return ", handlerImplName(service), "{handler: handler, advice: adv, methodInfo: methodInfo}")
+	gf.P("return ", handlerImplName(service), "{handler: handler, proxy: proxy, methodInfo: methodInfo}")
 	gf.P("}")
 }
 

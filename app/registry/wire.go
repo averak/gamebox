@@ -9,7 +9,7 @@ import (
 
 	"github.com/averak/gamebox/app/adapter/handler"
 	"github.com/averak/gamebox/app/adapter/repoimpl"
-	"github.com/averak/gamebox/app/infrastructure/connect/advice"
+	"github.com/averak/gamebox/app/infrastructure/connect/aop"
 	"github.com/averak/gamebox/app/infrastructure/db"
 	"github.com/averak/gamebox/app/usecase"
 	"github.com/google/wire"
@@ -18,7 +18,7 @@ import (
 var SuperSet = wire.NewSet(
 	repoimpl.SuperSet,
 	usecase.SuperSet,
-	advice.NewAdvice,
+	aop.NewProxy,
 	db.NewConnection,
 )
 

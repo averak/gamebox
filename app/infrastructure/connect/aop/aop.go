@@ -1,4 +1,4 @@
-package advice
+package aop
 
 import (
 	"context"
@@ -20,12 +20,12 @@ type (
 	MethodErrDefinition            = custom_option.MethodErrorDefinition
 	Method[REQ, RES proto.Message] func(context.Context, *Request[REQ]) (RES, error)
 
-	// Advice は、RPC メソッドの実行前後に処理を挟むための関数です。
-	// interceptor は MethodOption を解釈できないので、似た仕組みが別途必要になります。
-	Advice func(context.Context, proto.Message, mdval.IncomingMD, *MethodInfo, func(context.Context, game_context.GameContext, *model.User, mdval.IncomingMD) (proto.Message, error)) error
+	// Proxy は、rpc method の前後で cross-cutting concern を実行するための関数です。
+	// interceptor だと共通化しづらい処理を、ここで実行します。
+	Proxy func(context.Context, proto.Message, mdval.IncomingMD, *MethodInfo, func(context.Context, game_context.GameContext, *model.User, mdval.IncomingMD) (proto.Message, error)) error
 )
 
-func NewAdvice(conn transaction.Connection, userRepo repository.UserRepository) Advice {
+func NewProxy(conn transaction.Connection, userRepo repository.UserRepository) Proxy {
 	return func(ctx context.Context, req proto.Message, incomingMD mdval.IncomingMD, info *MethodInfo, method func(context.Context, game_context.GameContext, *model.User, mdval.IncomingMD) (proto.Message, error)) error {
 		params, err := fixPreconditionParams(ctx, incomingMD)
 		if err != nil {

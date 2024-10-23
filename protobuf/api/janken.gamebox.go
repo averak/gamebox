@@ -7,52 +7,52 @@ import (
 	connect "connectrpc.com/connect"
 	context "context"
 	connect1 "github.com/averak/gamebox/app/infrastructure/connect"
-	advice "github.com/averak/gamebox/app/infrastructure/connect/advice"
+	aop "github.com/averak/gamebox/app/infrastructure/connect/aop"
 	custom_option "github.com/averak/gamebox/protobuf/custom_option"
 	proto "google.golang.org/protobuf/proto"
 )
 
 type gamebox_JankenServiceHandler interface {
-	ChooseHandV1(ctx context.Context, req *advice.Request[*JankenServiceChooseHandV1Request]) (*JankenServiceChooseHandV1Response, error)
+	ChooseHandV1(ctx context.Context, req *aop.Request[*JankenServiceChooseHandV1Request]) (*JankenServiceChooseHandV1Response, error)
 	ChooseHandV1Errors(errs *JankenServiceChooseHandV1Errors)
 }
 
 type JankenServiceChooseHandV1Errors struct {
 	// The session does not exist.
-	RESOURCE_NOT_FOUND *advice.MethodErrDefinition
+	RESOURCE_NOT_FOUND *aop.MethodErrDefinition
 
-	causes map[error]*advice.MethodErrDefinition
+	causes map[error]*aop.MethodErrDefinition
 }
 
-func (e *JankenServiceChooseHandV1Errors) Map(from error, to *advice.MethodErrDefinition) {
+func (e *JankenServiceChooseHandV1Errors) Map(from error, to *aop.MethodErrDefinition) {
 	e.causes[from] = to
 }
 
-func NewJankenServiceHandler(handler gamebox_JankenServiceHandler, adv advice.Advice) gamebox_JankenServiceHandlerImpl {
+func NewJankenServiceHandler(handler gamebox_JankenServiceHandler, proxy aop.Proxy) gamebox_JankenServiceHandlerImpl {
 	service := File_api_janken_proto.Services().ByName("JankenService")
-	causes := [1]map[error]*advice.MethodErrDefinition{{}}
-	methodOpts := [1]*advice.MethodOption{}
+	causes := [1]map[error]*aop.MethodErrDefinition{{}}
+	methodOpts := [1]*aop.MethodOption{}
 	for i, m := 0, service.Methods(); i < 1; i++ {
-		methodOpts[i] = proto.GetExtension(m.Get(i).Options(), custom_option.E_MethodOption).(*advice.MethodOption)
+		methodOpts[i] = proto.GetExtension(m.Get(i).Options(), custom_option.E_MethodOption).(*aop.MethodOption)
 	}
 	handler.ChooseHandV1Errors(&JankenServiceChooseHandV1Errors{
 		RESOURCE_NOT_FOUND: methodOpts[0].GetMethodErrorDefinitions()[0],
 		causes:             causes[0],
 	})
-	methodInfo := [1]*advice.MethodInfo{
-		advice.NewMethodInfo(methodOpts[0], causes[0]),
+	methodInfo := [1]*aop.MethodInfo{
+		aop.NewMethodInfo(methodOpts[0], causes[0]),
 	}
-	return gamebox_JankenServiceHandlerImpl{handler: handler, advice: adv, methodInfo: methodInfo}
+	return gamebox_JankenServiceHandlerImpl{handler: handler, proxy: proxy, methodInfo: methodInfo}
 }
 
 type gamebox_JankenServiceHandlerImpl struct {
 	handler    gamebox_JankenServiceHandler
-	advice     advice.Advice
-	methodInfo [1]*advice.MethodInfo
+	proxy      aop.Proxy
+	methodInfo [1]*aop.MethodInfo
 }
 
 func (h gamebox_JankenServiceHandlerImpl) ChooseHandV1(ctx context.Context, req *connect.Request[JankenServiceChooseHandV1Request]) (*connect.Response[JankenServiceChooseHandV1Response], error) {
-	res, err := connect1.Invoke(ctx, req.Msg, req.Header(), h.methodInfo[0], h.handler.ChooseHandV1, h.advice)
+	res, err := connect1.Invoke(ctx, req.Msg, req.Header(), h.methodInfo[0], h.handler.ChooseHandV1, h.proxy)
 	if err != nil {
 		return nil, err
 	}

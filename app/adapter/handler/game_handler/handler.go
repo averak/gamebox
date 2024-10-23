@@ -6,7 +6,7 @@ import (
 	"github.com/averak/gamebox/app/adapter/pbconv"
 	"github.com/averak/gamebox/app/domain/model"
 	"github.com/averak/gamebox/app/domain/repository"
-	"github.com/averak/gamebox/app/infrastructure/connect/advice"
+	"github.com/averak/gamebox/app/infrastructure/connect/aop"
 	"github.com/averak/gamebox/app/usecase/game_usecase"
 	"github.com/averak/gamebox/protobuf/api"
 	"github.com/averak/gamebox/protobuf/api/apiconnect"
@@ -17,11 +17,11 @@ type handler struct {
 	uc *game_usecase.Usecase
 }
 
-func NewHandler(uc *game_usecase.Usecase, advice advice.Advice) apiconnect.GameServiceHandler {
-	return api.NewGameServiceHandler(&handler{uc}, advice)
+func NewHandler(uc *game_usecase.Usecase, proxy aop.Proxy) apiconnect.GameServiceHandler {
+	return api.NewGameServiceHandler(&handler{uc}, proxy)
 }
 
-func (h handler) GetSessionV1(ctx context.Context, req *advice.Request[*api.GameServiceGetSessionV1Request]) (*api.GameServiceGetSessionV1Response, error) {
+func (h handler) GetSessionV1(ctx context.Context, req *aop.Request[*api.GameServiceGetSessionV1Request]) (*api.GameServiceGetSessionV1Response, error) {
 	principal, _ := req.Principal()
 	result, err := h.uc.GetSession(ctx, principal, uuid.MustParse(req.Msg().GetSessionId()))
 	if err != nil {
@@ -36,7 +36,7 @@ func (h handler) GetSessionV1Errors(errs *api.GameServiceGetSessionV1Errors) {
 	errs.Map(repository.ErrGameSessionNotFound, errs.RESOURCE_NOT_FOUND)
 }
 
-func (h handler) ListPlayingSessionsV1(ctx context.Context, req *advice.Request[*api.GameServiceListPlayingSessionsV1Request]) (*api.GameServiceListPlayingSessionsV1Response, error) {
+func (h handler) ListPlayingSessionsV1(ctx context.Context, req *aop.Request[*api.GameServiceListPlayingSessionsV1Request]) (*api.GameServiceListPlayingSessionsV1Response, error) {
 	principal, _ := req.Principal()
 	result, err := h.uc.ListPlayingSession(ctx, principal)
 	if err != nil {
@@ -47,7 +47,7 @@ func (h handler) ListPlayingSessionsV1(ctx context.Context, req *advice.Request[
 	}, nil
 }
 
-func (h handler) StartPlayingV1(ctx context.Context, req *advice.Request[*api.GameServiceStartPlayingV1Request]) (*api.GameServiceStartPlayingV1Response, error) {
+func (h handler) StartPlayingV1(ctx context.Context, req *aop.Request[*api.GameServiceStartPlayingV1Request]) (*api.GameServiceStartPlayingV1Response, error) {
 	principal, _ := req.Principal()
 	gameID, err := pbconv.ToGameID(req.Msg().GetGameId())
 	if err != nil {
